@@ -17,7 +17,9 @@ class TariffResource extends Resource
 {
     protected static ?string $model = Tariff::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+    protected static ?int $navigationSort = 40;
 
     public static function form(Form $form): Form
     {

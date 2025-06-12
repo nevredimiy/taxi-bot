@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\DriverResource\Pages;
 use App\Filament\Resources\DriverResource\RelationManagers;
 use App\Models\Driver;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,46 +14,61 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+use Filament\Forms\Components\Section;
+
 class DriverResource extends Resource
 {
     protected static ?string $model = Driver::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+
+    protected static ?int $navigationSort = 20;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('user_id')
+                Forms\Components\Select::make('user_id')
                     ->required()
-                    ->numeric(),
+                    ->options(User::all()->pluck('name', 'id')),
                 Forms\Components\TextInput::make('full_name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('status')
+                Forms\Components\Select::make('status')
                     ->required()
-                    ->maxLength(255)
+                    ->options([
+                        'pending' => 'pending',
+                        'active' => 'active',
+                        'blocked' => 'blocked',
+                    ])
                     ->default('pending'),
-                Forms\Components\TextInput::make('license_number')
-                    ->maxLength(255),
-                Forms\Components\FileUpload::make('license_photo')
-                    ->image()
-                    ->disk('public')
-                    ->maxSize(2600)
-                    ->directory('img/license_photo')
-                    ->deleteUploadedFileUsing(fn ($record) => 
-                        $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
-                    ),
-                Forms\Components\FileUpload::make('car_photo')
-                    ->image()
-                    ->disk('public')
-                    ->maxSize(2600)
-                    ->directory('img/car_photo')
-                    ->deleteUploadedFileUsing(fn ($record) => 
-                        $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
-                    ),
-                Forms\Components\TextInput::make('car_model')
-                    ->maxLength(255),
+
+                Section::make('Информация автомобиля')
+                        ->schema([
+                            Forms\Components\TextInput::make('license_number')
+                                ->maxLength(255),
+                            Forms\Components\TextInput::make('car_model')
+                                ->maxLength(255),
+                            Forms\Components\FileUpload::make('license_photo')
+                                ->image()
+                                ->disk('public')
+                                ->maxSize(2600)
+                                ->directory('img/license_photo')
+                                ->deleteUploadedFileUsing(fn ($record) => 
+                                    $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
+                                ),
+                            Forms\Components\FileUpload::make('car_photo')
+                                ->image()
+                                ->disk('public')
+                                ->maxSize(2600)
+                                ->directory('img/car_photo')
+                                ->deleteUploadedFileUsing(fn ($record) => 
+                                    $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
+                                ),
+                           
+                        ])
+                        ->columns(2),
+               
                
                 Forms\Components\TextInput::make('country')
                     ->maxLength(255),

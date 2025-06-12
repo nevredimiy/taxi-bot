@@ -12,6 +12,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\DeleteAction;
 
 class UserResource extends Resource
 {
@@ -33,9 +37,19 @@ class UserResource extends Resource
                 Forms\Components\DateTimePicker::make('email_verified_at'),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('role')
+                    ->maxLength(255)
+                    ->nullable()
+                    ->dehydrated(fn ($state) => filled($state)) // 👈 Сохранится только если что-то введено
+                    ->dehydrateStateUsing(fn ($state) => bcrypt($state)), // 👈 Хешируем, если пароль введён
+                Forms\Components\Select::make('role')
+                    ->label('Роль')
+                    ->options([
+                        'admin' => 'admin',
+                        'driver' => 'driver',
+                        'client' => 'client',
+                    ])
+                    ->dehydrated()
+                    ->default('client')
                     ->required(),
                 Forms\Components\TextInput::make('telegram_id')
                     ->tel()
@@ -70,7 +84,11 @@ class UserResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -6,12 +6,18 @@ use App\Filament\Resources\OrderResource\Pages;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
 use Filament\Forms;
+use App\Models\Driver;
+use App\Models\Client;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Exports\OrderExporter;
+use Filament\Tables\Actions\ExportAction;
+use Filament\Tables\Actions\ExportBulkAction;
+
 
 class OrderResource extends Resource
 {
@@ -25,18 +31,27 @@ class OrderResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('client_id')
+                Forms\Components\Select::make('client_id')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('driver_id')
-                    ->numeric(),
-                Forms\Components\TextInput::make('status')
+                    ->options(Client::all()->pluck('full_name', 'id'))
+                    ->searchable(),
+                Forms\Components\Select::make('driver_id')
+                    ->options(Driver::all()->pluck('full_name', 'id'))
+                    ->searchable(),
+                Forms\Components\Select::make('status')
                     ->required()
-                    ->maxLength(255)
+                    ->options([
+                        'new' => 'new',
+                        'accepted' => 'accepted',
+                        'rejected' => 'rejected',
+                        'completed' => 'completed'
+                    ])
                     ->default('new'),
                 Forms\Components\TextInput::make('route')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('budget')
+                    ->minValue(0)
+                    ->prefix('$')
                     ->numeric(),
                 Forms\Components\Textarea::make('details')
                     ->columnSpanFull(),
@@ -79,6 +94,14 @@ class OrderResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(OrderExporter::class)
+            ])
+            ->bulkActions([
+                ExportBulkAction::make()
+                    ->exporter(OrderExporter::class)
             ]);
     }
 

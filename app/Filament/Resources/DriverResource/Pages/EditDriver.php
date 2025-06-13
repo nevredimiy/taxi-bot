@@ -15,5 +15,13 @@ class EditDriver extends EditRecord
         return [
             Actions\DeleteAction::make(),
         ];
+        
     }
+
+     // Метод позволяет перейти в список, после редактировании
+     protected function getRedirectUrl(): string
+     {
+         // Перенаправление на список событий
+         return $this->getResource()::getUrl('index');
+     }
 }

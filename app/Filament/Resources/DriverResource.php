@@ -14,6 +14,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Forms\Components\Section;
 
 class DriverResource extends Resource
@@ -55,7 +56,7 @@ class DriverResource extends Resource
                                 ->maxSize(2600)
                                 ->directory('img/license_photo')
                                 ->deleteUploadedFileUsing(fn ($record) => 
-                                    $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
+                                    $record->license_photo ? unlink(storage_path('app/public/' . $record->license_photo)) : null
                                 ),
                             Forms\Components\FileUpload::make('car_photo')
                                 ->image()
@@ -63,7 +64,7 @@ class DriverResource extends Resource
                                 ->maxSize(2600)
                                 ->directory('img/car_photo')
                                 ->deleteUploadedFileUsing(fn ($record) => 
-                                    $record->photo ? unlink(storage_path('app/public/' . $record->photo)) : null
+                                    $record->car_photo ? unlink(storage_path('app/public/' . $record->car_photo)) : null
                                 ),
                            
                         ])
@@ -90,16 +91,26 @@ class DriverResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('license_number')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('license_photo')
-                    ->searchable(),
+                // Tables\Columns\TextColumn::make('license_photo')
+                //     ->searchable(),
                 Tables\Columns\TextColumn::make('car_model')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('car_photo')
-                    ->searchable(),
+                // Tables\Columns\TextColumn::make('car_photo')
+                //     ->searchable(),
                 Tables\Columns\TextColumn::make('country')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('city')
                     ->searchable(),
+                ImageColumn::make('license_photo')
+                    ->disk('public')
+                    ->height(50)
+                    ->width(50)
+                    ->label('Лиценция'), 
+                ImageColumn::make('car_photo')
+                    ->disk('public')
+                    ->height(50)
+                    ->width(50)
+                    ->label('Фото автомобиля'), 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -113,7 +124,11 @@ class DriverResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\EditAction::make(),
+                    Tables\Actions\DeleteAction::make(),
+                ])
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

@@ -31,7 +31,8 @@ class TariffResource extends Resource
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('$')
+                    ->minValue(0),
                 Forms\Components\Textarea::make('conditions')
                     ->columnSpanFull(),
             ]);

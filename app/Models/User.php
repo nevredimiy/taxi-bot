@@ -9,7 +9,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+use Filament\Models\Contracts\FilamentUser;
+
+class User extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable, HasApiTokens;
 
@@ -57,5 +59,15 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // public function canAccessPanel(\Filament\Panel $panel): bool
+    // {
+    //     return $this->email === 'admin@example.com'; // подставь свой email
+    // }
+    public function canAccessPanel(\Filament\Panel $panel): bool
+    {
+        // Вариант: разрешить только администраторам
+        return $this->is_admin; // или любая твоя проверка
     }
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('bots', function (Blueprint $table) {
             $table->id();
-            $table->string('bot_id')->unique(); // Telegram bot username or internal ID
+            $table->string('bot_id', 191)->unique(); // Telegram bot username or internal ID
             $table->string('token');
             $table->boolean('active')->default(true);
             $table->string('webhook_url')->nullable();

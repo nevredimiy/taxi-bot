@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tariffs', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->decimal('price', 10, 2);
-            $table->text('conditions')->nullable(); // JSON или обычный текст
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('tariffs')) {
+            Schema::create('tariffs', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->decimal('price', 10, 2);
+                $table->text('conditions')->nullable(); // JSON или обычный текст
+                $table->timestamps();
+            });
+        }
     }
 
     /**

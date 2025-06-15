@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('subscriptions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('driver_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['free', 'paid']);
-            $table->date('starts_at');
-            $table->date('ends_at')->nullable();
-            $table->string('status')->default('active'); // active, expired, cancelled
-            $table->decimal('price', 10, 2)->default(0);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('subscriptions')) {
+            Schema::create('subscriptions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('driver_id')->constrained()->onDelete('cascade');
+                $table->enum('type', ['free', 'paid']);
+                $table->date('starts_at');
+                $table->date('ends_at')->nullable();
+                $table->string('status')->default('active'); // active, expired, cancelled
+                $table->decimal('price', 10, 2)->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

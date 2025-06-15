@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('orders', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('client_id')->constrained()->onDelete('cascade');
-            $table->foreignId('driver_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('status')->default('new'); // new, accepted, rejected, completed
-            $table->string('route')->nullable();
-            $table->decimal('budget', 10, 2)->nullable();
-            $table->text('details')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('orders')) {
+            Schema::create('orders', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('client_id')->constrained()->onDelete('cascade');
+                $table->foreignId('driver_id')->nullable()->constrained()->onDelete('set null');
+                $table->string('status')->default('new'); // new, accepted, rejected, completed
+                $table->string('route')->nullable();
+                $table->decimal('budget', 10, 2)->nullable();
+                $table->text('details')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

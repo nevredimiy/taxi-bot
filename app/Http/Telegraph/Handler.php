@@ -50,7 +50,7 @@ class Handler extends WebhookHandler
     {
 
         Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
-        
+
         $step = $this->chat->storage()->get('registration_step');
 
         switch ($step) {
@@ -73,14 +73,14 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'client_last_name');
                 $this->chat->message('Enter your last name:')->send();
                 break;
-            
-                
+
+
             case 'client_last_name':
                 $this->chat->storage()->set('client_last_name', $text);
                 $this->chat->storage()->set('registration_step', 'client_phone');
                 $this->chat->message('Enter your phone number:')->send();
                 break;
-                    
+
             case 'client_phone':
                 $this->chat->storage()->set('client_phone', $text);
                 $this->chat->storage()->set('registration_step', 'client_country');
@@ -133,38 +133,36 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'driver_city');
                 $this->chat->message('Enter city:')->send();
                 break;
-            
-             case 'driver_city':
+
+            case 'driver_city':
                 $this->chat->storage()->set('driver_city', $text);
                 $this->chat->storage()->set('registration_step', 'license_photo');
                 $this->chat->message('Great! Now send a photo of your driver\'s license:')->send();
                 break;
 
+            case 'license_photo':
+                $this->chat->storage()->set('license_photo', $text);
+                $filename = 'license_' . now()->timestamp . '.jpg';
+                $path = 'license_photos/' . $filename;
+                Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
+                // Сохраняем в хранилище (например, в сессию)
+                $this->chat->storage()->set('license_photo', 'storage/' . $path);
+                $this->chat->storage()->set('registration_step', 'car_photo');
+                $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
+                break;
+            
+            case 'car_photo':
+                $this->chat->storage()->set('car_photo', $text);
+                $filename = 'license_' . now()->timestamp . '.jpg';
+                $path = 'car_photo/' . $filename;
+                Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
+                $this->chat->storage()->set('car_photo', 'storage/' . $path);
+                $this->saveDriver(); // Финальный шаг
+                break;
+
             default:
                 $this->chat->message('Use /start to begin.')->send();
         }
-        
-
-        // // Если мы ожидаем фото, а получили текст, просим отправить фото.
-        // if (in_array($step, ['license_photo', 'car_photo'])) {
-        //     $this->chat->message('Пожалуйста, на этом шаге отправьте фотографию, а не текст.')->send();
-        //     return;
-        // }
-
-        // // Используем match для маршрутизации по шагам, которые ожидают текст.
-        // match ($step) {
-        //     'first_name' => $this->handleFirstName($text->toString()),
-        //     'last_name' => $this->handleLastName($text->toString()),
-        //     'license_number' => $this->handleLicenseNumber($text->toString()),
-        //     'car_model' => $this->handleCarModel($text->toString()),
-        //     'country' => $this->handleCountry($text->toString()),
-        //     'city' => $this->handleCity($text->toString()),
-        //     default => $this->chat->message('Для начала работы, пожалуйста, нажмите "Регистрация водителя".')
-        //         ->keyboard(Keyboard::make()->buttons([
-        //             Button::make('🚗 Driver registration')->action('register_driver'),
-        //         ]))
-        //         ->send(),
-        // };
     }
 
     protected function saveClient(): void
@@ -231,47 +229,6 @@ class Handler extends WebhookHandler
         }
     }
 
-    protected function handleFirstName(string $text): void
-    {
-        $this->chat->storage()->set('first_name', $text);
-        $this->chat->storage()->set('registration_step', 'license_number');
-        $this->chat->message('Enter your last name:')->send();
-    }
-
-    protected function handleLastName(string $text): void
-    {
-        $this->chat->storage()->set('last_name', $text);
-        $this->chat->storage()->set('registration_step', 'license_number');
-        $this->chat->message('Enter the license number or state registration number of the car:')->send();
-    }
-
-    protected function handleLicenseNumber(string $text): void
-    {
-        $this->chat->storage()->set('license_number', $text);
-        $this->chat->storage()->set('registration_step', 'car_model');
-        $this->chat->message('Enter the make and model of your vehicle (e.g. Toyota Camry):')->send();
-    }
-
-    protected function handleCarModel(string $text): void
-    {
-        $this->chat->storage()->set('car_model', $text);
-        $this->chat->storage()->set('registration_step', 'country');
-        $this->chat->message('Enter country:')->send();
-    }
-
-    protected function handleCountry(string $text): void
-    {
-        $this->chat->storage()->set('country', $text);
-        $this->chat->storage()->set('registration_step', 'city');
-        $this->chat->message('Enter city:')->send();
-    }
-
-    protected function handleCity(string $text): void
-    {
-        $this->chat->storage()->set('city', $text);
-        $this->chat->storage()->set('registration_step', 'license_photo');
-        $this->chat->message('Great! Now send a photo of your driver\'s license:')->send();
-    }
 
     protected function saveDriver(): void
     {

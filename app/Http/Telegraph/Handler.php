@@ -3,6 +3,7 @@
 namespace App\Http\Telegraph;
 
 use App\Models\Driver;
+use App\Models\Client;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -18,6 +19,7 @@ class Handler extends WebhookHandler
         $this->chat->message('Welcome!')
             ->keyboard(Keyboard::make()->buttons([
                 Button::make('🚗 Driver registration')->action('register_driver'),
+                Button::make('Client registration')->action('register_client'),
             ]))->send();
     }
 
@@ -25,6 +27,12 @@ class Handler extends WebhookHandler
     {
         // Устанавливаем первый шаг регистрации
         $this->chat->storage()->set('registration_step', 'first_name');
+        $this->chat->message('Please enter your first name:')->send();
+    }
+
+    public function register_client(): void
+    {
+        $this->chat->storage()->set('registration_step', 'client_first_name');
         $this->chat->message('Please enter your first name:')->send();
     }
 
@@ -38,6 +46,41 @@ class Handler extends WebhookHandler
         Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
         
         $step = $this->chat->storage()->get('registration_step');
+
+        switch ($step) {
+            case 'client_first_name':
+                $this->chat->storage()->set('client_first_name', $text);
+                $this->chat->storage()->set('registration_step', 'client_last_name');
+                $this->chat->message('Enter your last name:')->send();
+                break;
+
+            case 'client_last_name':
+                $this->chat->storage()->set('client_last_name', $text);
+                $this->chat->storage()->set('registration_step', 'client_phone');
+                $this->chat->message('Enter your phone number:')->send();
+                break;
+
+            case 'client_phone':
+                $this->chat->storage()->set('client_phone', $text);
+                $this->chat->storage()->set('registration_step', 'client_country');
+                $this->chat->message('Enter your country:')->send();
+                break;
+
+            case 'client_country':
+                $this->chat->storage()->set('client_country', $text);
+                $this->chat->storage()->set('registration_step', 'client_city');
+                $this->chat->message('Enter your city:')->send();
+                break;
+
+            case 'client_city':
+                $this->chat->storage()->set('client_city', $text);
+                $this->saveClient();
+                break;
+
+            default:
+                $this->chat->message('Use /start to begin.')->send();
+        }
+        
 
         // Если мы ожидаем фото, а получили текст, просим отправить фото.
         if (in_array($step, ['license_photo', 'car_photo'])) {
@@ -59,6 +102,24 @@ class Handler extends WebhookHandler
                 ]))
                 ->send(),
         };
+    }
+
+    protected function saveClient(): void
+    {
+        $client = new Client();
+        $client->first_name = $this->chat->storage()->get('client_first_name');
+        $client->last_name = $this->chat->storage()->get('client_last_name');
+        $client->phone = $this->chat->storage()->get('client_phone');
+        $client->country = $this->chat->storage()->get('client_country');
+        $client->city = $this->chat->storage()->get('client_city');
+        $client->telegram_id = $this->message->from()->id();
+
+        $client->save();
+
+        $this->chat->message('✅ You have been successfully registered as a client!')->send();
+
+        // Clear storage
+        $this->chat->storage()->forget;
     }
 
     /**

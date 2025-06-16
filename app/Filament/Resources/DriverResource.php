@@ -57,7 +57,7 @@ class DriverResource extends Resource
                                 ->image()
                                 ->disk('public')
                                 ->maxSize(2600)
-                                ->directory('img/license_photo')
+                                ->directory('license_photo')
                                 ->deleteUploadedFileUsing(fn ($record) => 
                                     $record->license_photo ? unlink(storage_path('app/public/' . $record->license_photo)) : null
                                 ),
@@ -65,7 +65,7 @@ class DriverResource extends Resource
                                 ->image()
                                 ->disk('public')
                                 ->maxSize(2600)
-                                ->directory('img/car_photo')
+                                ->directory('car_photo')
                                 ->deleteUploadedFileUsing(fn ($record) => 
                                     $record->car_photo ? unlink(storage_path('app/public/' . $record->car_photo)) : null
                                 ),

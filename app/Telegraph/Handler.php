@@ -24,11 +24,9 @@ class Handler extends WebhookHandler
 
     public function start(): void
     {
-        $this->chat->message('Добро пожаловать!')->keyboard(
-            Keyboard::make()->row([
-                Keyboard::make()->buttons([
-                    Button::make('🚗 Регистрация водителя')->action('register_driver')
-                ])
+        $this->chat->message('Добро пожаловать!')
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make('🚗 Регистрация водителя')->action('register_driver')
             ])
         )->send();
     }

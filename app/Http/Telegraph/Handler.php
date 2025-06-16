@@ -37,11 +37,11 @@ class Handler extends WebhookHandler
         
         $step = $this->chat->storage()->get('registration_step');
 
-        // Если мы ожидаем фото, а получили текст, просим отправить фото.
-        if (in_array($step, ['license_photo', 'car_photo'])) {
-            $this->chat->message('Пожалуйста, на этом шаге отправьте фотографию, а не текст.')->send();
-            return;
-        }
+        // // Если мы ожидаем фото, а получили текст, просим отправить фото.
+        // if (in_array($step, ['license_photo', 'car_photo'])) {
+        //     $this->chat->message('Пожалуйста, на этом шаге отправьте фотографию, а не текст.')->send();
+        //     return;
+        // }
 
         // Используем match для маршрутизации по шагам, которые ожидают текст.
         match ($step) {

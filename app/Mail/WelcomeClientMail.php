@@ -8,17 +8,22 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use App\Models\User;
 
 class WelcomeClientMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public User $user;
+    public string $password;
+
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(User $user, string $password)
     {
-        //
+        $this->user = $user;
+        $this->password = $password;
     }
 
     /**
@@ -27,7 +32,7 @@ class WelcomeClientMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome Client Mail',
+            subject: '🎉 Welcome to TaxiBot!',
         );
     }
 

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Mail\WelcomeClientMail;
 use Illuminate\Support\Facades\Mail;
 
+
 class Handler extends WebhookHandler
 {
     public function start(): void
@@ -31,8 +32,8 @@ class Handler extends WebhookHandler
     public function register_driver(): void
     {
         // Устанавливаем первый шаг регистрации
-        $this->chat->storage()->set('registration_step', 'driver_first_name');
-        $this->chat->message('Please enter your first name:')->send();
+        $this->chat->storage()->set('registration_step', 'driver_email');
+        $this->chat->message('Please enter your email:')->send();
     }
 
     public function register_client(): void
@@ -97,6 +98,18 @@ class Handler extends WebhookHandler
                 $this->saveClient();
                 break;
 
+            case 'driver_email':
+                $email = $text;
+                if (User::where('email', $email)->exists()) {
+                    $this->chat->message('🚫 This email is already taken. Try another one.')->send();
+                    return;
+                }
+
+                $this->chat->storage()->set('driver_email', $email);
+                $this->chat->storage()->set('registration_step', 'driver_first_name');
+                $this->chat->message('Please enter your first name:')->send();
+                break;
+
             case 'driver_first_name':
                 $this->chat->storage()->set('driver_first_name', $text);
                 $this->chat->storage()->set('registration_step', 'driver_last_name');
@@ -119,6 +132,12 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('driver_car_model', $text);
                 $this->chat->storage()->set('registration_step', 'driver_city');
                 $this->chat->message('Enter city:')->send();
+                break;
+            
+             case 'driver_city':
+                $this->chat->storage()->set('driver_city', $text);
+                $this->chat->storage()->set('registration_step', 'license_photo');
+                $this->chat->message('Great! Now send a photo of your driver\'s license:')->send();
                 break;
 
             default:
@@ -179,29 +198,36 @@ class Handler extends WebhookHandler
         $this->chat->message('✅ You have been successfully registered as a client!')->send();
 
         // Clear storage
-        $this->chat->storage()->forget;
+        // $this->chat->storage()->forget;
     }
 
     /**
      * Обрабатывает получение фото от пользователя.
      */
-    public function handlePhoto(): void
+    public function handlePhoto(\DefStudio\Telegraph\DTO\Photo $photo): void
     {
         $step = $this->chat->storage()->get('registration_step');
-        // Получаем file_id из объекта сообщения
-        $fileId = $this->message->photos()->last()->id();
 
         if ($step === 'license_photo') {
-            $this->chat->storage()->set('license_photo_file_id', $fileId);
+            // Генерируем уникальное имя файла
+            $filename = 'license_' . now()->timestamp . '.jpg';
+
+            // Сохраняем фото в папку
+            $path = 'license_photos/' . $filename;
+            Telegraph::store($photo, Storage::path('public/' . $path));
+
+            // Сохраняем в хранилище (например, в сессию)
+            $this->chat->storage()->set('license_photo', 'storage/' . $path);
             $this->chat->storage()->set('registration_step', 'car_photo');
-            $this->chat->message('Thank you. Now send a photo of the car.')->send();
+
+            $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
         } elseif ($step === 'car_photo') {
-            $this->chat->storage()->set('car_photo_file_id', $fileId);
-            // Если это последнее фото, сохраняем данные водителя
-            $this->saveDriver();
-        } else {
-            // На случай, если фото прислали не на том шаге
-            $this->chat->message('Я не ожидал получить фото на этом шаге.')->send();
+            $filename = 'car_' . now()->timestamp . '.jpg';
+            $path = 'car_photos/' . $filename;
+            Telegraph::store($photo, Storage::path('public/' . $path));
+
+            $this->chat->storage()->set('car_photo', 'storage/' . $path);
+            $this->saveDriver(); // Финальный шаг
         }
     }
 
@@ -249,44 +275,51 @@ class Handler extends WebhookHandler
 
     protected function saveDriver(): void
     {
-        $data = $this->chat->storage()->get;
-        $chatId = $this->chat->chat_id; // Используем ID чата для уникальности
+        $chatId = $this->chat->chatId();
 
-        try {
-            // Скачиваем фото
-            $licenseFileId = $data['license_photo_file_id'];
-            $carFileId = $data['car_photo_file_id'];
-            
-            // Определяем относительные пути для сохранения в БД
-            $licenseRelativePath = "img/license_photo/{$chatId}_license.jpg";
-            $carRelativePath = "img/car_photo/{$chatId}_car.jpg";
+        $data = [
+            'first_name' => $this->chat->storage()->get('driver_first_name'),
+            'last_name' => $this->chat->storage()->get('driver_last_name'),
+            'license_number' => $this->chat->storage()->get('driver_license_number'),
+            'car_model' => $this->chat->storage()->get('driver_car_model'),
+            'city' => $this->chat->storage()->get('driver_city'),
+            'license_photo' => $this->chat->storage()->get('license_photo'),
+            'car_photo' => $this->chat->storage()->get('car_photo'),
+        ];
 
-            // Скачиваем файлы напрямую в public storage
-            Telegraph::download($licenseFileId, Storage::path("public/{$licenseRelativePath}"));
-            Telegraph::download($carFileId, Storage::path("public/{$carRelativePath}"));
+        $email = $this->chat->storage()->get('driver_email');
 
-            Driver::create([
-                'user_id' => null, // или по логике авторизации
-                'telegram_id' => $chatId, // Сохраняем ID для связи
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'license_number' => $data['license_number'],
-                'car_model' => $data['car_model'],
-                'country' => $data['country'],
-                'city' => $data['city'],
-                'license_photo' => $licenseRelativePath, // Сохраняем относительный путь
-                'car_photo' => $carRelativePath, // Сохраняем относительный путь
-                'status' => 'pending',
-            ]);
+        // Генерация имени и пароля
+        $name = strtolower($data['first_name'] . '_' . $data['last_name']);
+        $password = Str::random(10);
 
-            // Очищаем хранилище после успешной регистрации
-            // $this->chat->storage()->clear();
-            $this->chat->message('Registration completed successfully! Wait for confirmation. 🚗')->send();
+        // Создание пользователя
+        $user = User::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => bcrypt($password),
+            'role' => 'driver',
+        ]);
 
-        } catch (\Throwable $e) {
-            // В случае ошибки сообщаем пользователю и логируем
-            report($e); // Отправляем ошибку в систему логирования Laravel
-            $this->chat->message('Произошла непредвиденная ошибка при сохранении данных. Попробуйте позже.')->send();
-        }
+        // Создание водителя
+        Driver::create([
+            'user_id' => $user->id,
+            'telegram_id' => $chatId,
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'license_number' => $data['license_number'],
+            'car_model' => $data['car_model'],
+            'city' => $data['city'],
+            'country' => $this->chat->storage()->get('driver_country'),
+            'license_photo' => $data['license_photo'],
+            'car_photo' => $data['car_photo'],
+            'status' => 'pending',
+        ]);
+
+        // Отправка письма
+        Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
+
+        $this->chat->message('🎉 You have been registered as a driver! Please wait for approval.')->send();
+        // $this->chat->storage()->forgetAll(); // Очистка сессии
     }
 }

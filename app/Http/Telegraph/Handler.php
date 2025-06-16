@@ -119,17 +119,23 @@ class Handler extends WebhookHandler
             case 'driver_last_name':
                 $this->chat->storage()->set('driver_last_name', $text);
                 $this->chat->storage()->set('registration_step', 'driver_license_number');
-                $this->chat->message('Enter the make and model of your vehicle (e.g. Toyota Camry):')->send();
+                $this->chat->message('Enter license number:')->send();
                 break;
 
             case 'driver_license_number':
                 $this->chat->storage()->set('driver_license_number', $text);
                 $this->chat->storage()->set('registration_step', 'driver_car_model');
-                $this->chat->message('Enter country:')->send();
+                $this->chat->message('Enter the make and model of your vehicle (e.g. Toyota Camry):')->send();
                 break;
 
             case 'driver_car_model':
                 $this->chat->storage()->set('driver_car_model', $text);
+                $this->chat->storage()->set('registration_step', 'driver_country');
+                $this->chat->message('Enter country:')->send();
+                break;
+
+            case 'driver_country':
+                $this->chat->storage()->set('driver_country', $text);
                 $this->chat->storage()->set('registration_step', 'driver_city');
                 $this->chat->message('Enter city:')->send();
                 break;
@@ -150,7 +156,7 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'car_photo');
                 $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
                 break;
-            
+
             case 'car_photo':
                 $this->chat->storage()->set('car_photo', $text);
                 $filename = 'car_' . now()->timestamp . '.jpg';
@@ -233,7 +239,7 @@ class Handler extends WebhookHandler
     protected function saveDriver(): void
     {
         // $chatId = $this->chat->chatId;
-        $chatId = $this->message->from()->id();
+        // $chatId = $this->message->from()->id();
 
         $data = [
             'first_name' => $this->chat->storage()->get('driver_first_name'),
@@ -262,7 +268,7 @@ class Handler extends WebhookHandler
         // Создание водителя
         Driver::create([
             'user_id' => $user->id,
-            'telegram_id' => $chatId,
+            // 'telegram_id' => $chatId,
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'license_number' => $data['license_number'],

@@ -153,8 +153,8 @@ class Handler extends WebhookHandler
             
             case 'car_photo':
                 $this->chat->storage()->set('car_photo', $text);
-                $filename = 'license_' . now()->timestamp . '.jpg';
-                $path = 'car_photo/' . $filename;
+                $filename = 'car_' . now()->timestamp . '.jpg';
+                $path = 'car_photos/' . $filename;
                 Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
                 $this->chat->storage()->set('car_photo', 'storage/' . $path);
                 $this->saveDriver(); // Финальный шаг
@@ -232,7 +232,8 @@ class Handler extends WebhookHandler
 
     protected function saveDriver(): void
     {
-        $chatId = $this->chat->chatId();
+        // $chatId = $this->chat->chatId;
+        $chatId = $this->message->from()->id();
 
         $data = [
             'first_name' => $this->chat->storage()->get('driver_first_name'),

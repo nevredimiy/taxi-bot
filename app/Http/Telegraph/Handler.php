@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Telegraph;
+namespace App\Http\Telegraph;
 
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -41,21 +41,21 @@ class Handler extends WebhookHandler
 
     
 
-    protected function handleChatMessage(Stringable $text): void
-    {
-        $step = $this->chat->storage()->get('registration_step');
+    // protected function handleChatMessage(Stringable $text): void
+    // {
+    //     $step = $this->chat->storage()->get('registration_step');
 
-        match ($step) {
-            'full_name' => $this->handleFullName($text),
-            'license_number' => $this->handleLicenseNumber($text),
-            'car_model' => $this->handleCarModel($text),
-            'country' => $this->handleCountry($text),
-            'city' => $this->handleCity($text),
-            'license_photo' => $this->askForLicensePhoto(),
-            // 'car_photo' => $this->askForCarPhoto(),
-            default => $this->chat->message('Нажмите "Регистрация водителя" для начала.')->send(),
-        };
-    }
+    //     match ($step) {
+    //         'full_name' => $this->handleFullName($text),
+    //         'license_number' => $this->handleLicenseNumber($text),
+    //         'car_model' => $this->handleCarModel($text),
+    //         'country' => $this->handleCountry($text),
+    //         'city' => $this->handleCity($text),
+    //         'license_photo' => $this->askForLicensePhoto(),
+    //         // 'car_photo' => $this->askForCarPhoto(),
+    //         default => $this->chat->message('Нажмите "Регистрация водителя" для начала.')->send(),
+    //     };
+    // }
 
     protected function handleFullName(string $text): void
     {
@@ -126,7 +126,7 @@ class Handler extends WebhookHandler
             'status' => 'pending',
         ]);
 
-        $this->chat->storage()->clear();
+        // $this->chat->storage()->clear();
         $this->chat->message('Регистрация завершена! 🚗')->send();
     }
 }

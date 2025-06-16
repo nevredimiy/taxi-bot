@@ -1,6 +1,7 @@
 <?php
 
-use App\Telegraph\Handler;
+use App\Http\Telegraph\Handler;
+
 use DefStudio\Telegraph\Telegraph;
 
 return [

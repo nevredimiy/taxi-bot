@@ -19,14 +19,14 @@ class Handler extends WebhookHandler
         $this->chat->message('Welcome!')
             ->keyboard(Keyboard::make()->buttons([
                 Button::make('🚗 Driver registration')->action('register_driver'),
-                Button::make('Client registration')->action('register_client'),
+                Button::make('🙋 Client registration')->action('register_client'),
             ]))->send();
     }
 
     public function register_driver(): void
     {
         // Устанавливаем первый шаг регистрации
-        $this->chat->storage()->set('registration_step', 'first_name');
+        $this->chat->storage()->set('registration_step', 'driver_first_name');
         $this->chat->message('Please enter your first name:')->send();
     }
 
@@ -53,13 +53,14 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'client_last_name');
                 $this->chat->message('Enter your last name:')->send();
                 break;
-
+            
+                
             case 'client_last_name':
                 $this->chat->storage()->set('client_last_name', $text);
                 $this->chat->storage()->set('registration_step', 'client_phone');
                 $this->chat->message('Enter your phone number:')->send();
                 break;
-
+                    
             case 'client_phone':
                 $this->chat->storage()->set('client_phone', $text);
                 $this->chat->storage()->set('registration_step', 'client_country');
@@ -77,31 +78,55 @@ class Handler extends WebhookHandler
                 $this->saveClient();
                 break;
 
+            case 'driver_first_name':
+                $this->chat->storage()->set('driver_first_name', $text);
+                $this->chat->storage()->set('registration_step', 'driver_last_name');
+                $this->chat->message('Enter your last name:')->send();
+                break;
+
+            case 'driver_last_name':
+                $this->chat->storage()->set('driver_last_name', $text);
+                $this->chat->storage()->set('registration_step', 'driver_license_number');
+                $this->chat->message('Enter the make and model of your vehicle (e.g. Toyota Camry):')->send();
+                break;
+
+            case 'driver_license_number':
+                $this->chat->storage()->set('driver_license_number', $text);
+                $this->chat->storage()->set('registration_step', 'driver_car_model');
+                $this->chat->message('Enter country:')->send();
+                break;
+                
+            case 'driver_car_model':
+                $this->chat->storage()->set('driver_car_model', $text);
+                $this->chat->storage()->set('registration_step', 'driver_city');
+                $this->chat->message('Enter city:')->send();
+                break;
+
             default:
                 $this->chat->message('Use /start to begin.')->send();
         }
         
 
-        // Если мы ожидаем фото, а получили текст, просим отправить фото.
-        if (in_array($step, ['license_photo', 'car_photo'])) {
-            $this->chat->message('Пожалуйста, на этом шаге отправьте фотографию, а не текст.')->send();
-            return;
-        }
+        // // Если мы ожидаем фото, а получили текст, просим отправить фото.
+        // if (in_array($step, ['license_photo', 'car_photo'])) {
+        //     $this->chat->message('Пожалуйста, на этом шаге отправьте фотографию, а не текст.')->send();
+        //     return;
+        // }
 
-        // Используем match для маршрутизации по шагам, которые ожидают текст.
-        match ($step) {
-            'first_name' => $this->handleFirstName($text->toString()),
-            'last_name' => $this->handleLastName($text->toString()),
-            'license_number' => $this->handleLicenseNumber($text->toString()),
-            'car_model' => $this->handleCarModel($text->toString()),
-            'country' => $this->handleCountry($text->toString()),
-            'city' => $this->handleCity($text->toString()),
-            default => $this->chat->message('Для начала работы, пожалуйста, нажмите "Регистрация водителя".')
-                ->keyboard(Keyboard::make()->buttons([
-                    Button::make('🚗 Driver registration')->action('register_driver'),
-                ]))
-                ->send(),
-        };
+        // // Используем match для маршрутизации по шагам, которые ожидают текст.
+        // match ($step) {
+        //     'first_name' => $this->handleFirstName($text->toString()),
+        //     'last_name' => $this->handleLastName($text->toString()),
+        //     'license_number' => $this->handleLicenseNumber($text->toString()),
+        //     'car_model' => $this->handleCarModel($text->toString()),
+        //     'country' => $this->handleCountry($text->toString()),
+        //     'city' => $this->handleCity($text->toString()),
+        //     default => $this->chat->message('Для начала работы, пожалуйста, нажмите "Регистрация водителя".')
+        //         ->keyboard(Keyboard::make()->buttons([
+        //             Button::make('🚗 Driver registration')->action('register_driver'),
+        //         ]))
+        //         ->send(),
+        // };
     }
 
     protected function saveClient(): void

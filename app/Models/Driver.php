@@ -13,12 +13,12 @@ class Driver extends Model
         'last_name',
         'status',
         'license_number',
-        'license_photo',
-        'telegram_id',
         'car_model',
-        'car_photo',
         'country',
-        'city'
+        'city',
+        'telegram_id',
+        'license_photo',
+        'car_photo'
     ];
 
     public function user()

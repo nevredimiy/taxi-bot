@@ -24,13 +24,27 @@ class DriverController extends Controller
     {
         $data = $request->validated();
 
+        // if ($request->hasFile('license_photo')) {
+        //     $data['license_photo'] = $request->file('license_photo')->store('license_photos', 'public');
+        // }
+
+        // if ($request->hasFile('car_photo')) {
+        //     $data['car_photo'] = $request->file('car_photo')->store('car_photos', 'public');
+        // }
+
         if ($request->hasFile('license_photo')) {
-            $data['license_photo'] = $request->file('license_photo')->store('license_photos', 'public');
+            $filename = uniqid() . '.' . $request->file('license_photo')->getClientOriginalExtension();
+            $request->file('license_photo')->move(public_path('img/license_photos'), $filename);
+            $data['license_photo'] = 'img/license_photos/' . $filename;
         }
 
         if ($request->hasFile('car_photo')) {
-            $data['car_photo'] = $request->file('car_photo')->store('car_photos', 'public');
+            $filename = uniqid() . '.' . $request->file('car_photo')->getClientOriginalExtension();
+            $request->file('car_photo')->move(public_path('img/car_photos'), $filename);
+            $data['car_photo'] = 'img/car_photos/' . $filename;
         }
+
+        
 
         $driver = Driver::create($data);
 

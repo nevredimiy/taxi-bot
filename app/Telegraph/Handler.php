@@ -39,7 +39,9 @@ class Handler extends WebhookHandler
         $this->chat->message('Введите ваше полное имя:')->send();
     }
 
-    public function getChatMessage(string $text): void
+    
+
+    protected function handleChatMessage(Stringable $text): void
     {
         $step = $this->chat->storage()->get('registration_step');
 

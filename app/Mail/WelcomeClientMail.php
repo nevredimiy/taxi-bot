@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -14,17 +13,12 @@ class WelcomeClientMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-
-    public User $user;
-    public string $password;
-
     /**
      * Create a new message instance.
      */
-    public function __construct(User $user, string $password)
+    public function __construct()
     {
-        $this->user = $user;
-        $this->password = $password;
+        //
     }
 
     /**
@@ -33,7 +27,7 @@ class WelcomeClientMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🎉 Welcome to TaxiBot!',
+            subject: 'Welcome Client Mail',
         );
     }
 
@@ -43,7 +37,7 @@ class WelcomeClientMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.client.welcome',
+            markdown: 'emails.client.welcome',
         );
     }
 

@@ -1,4 +1,6 @@
-@component('mail::message')
+<x-mail::message>
+# Introduction
+
 # Welcome, {{ $user->name }}!
 
 Thank you for registering in our TaxiBot service.
@@ -8,12 +10,12 @@ Here are your login details:
 - **Email:** {{ $user->email }}
 - **Password:** {{ $password }}
 
-You can now access your personal dashboard or manage your bookings.
+The body of your message.
 
-@component('mail::button', ['url' => url('/')])
-Go to Site
-@endcomponent
+<x-mail::button :url="''">
+Button Text
+</x-mail::button>
 
 Thanks,<br>
-The TaxiBot Team
-@endcomponent
+{{ config('app.name') }}
+</x-mail::message>

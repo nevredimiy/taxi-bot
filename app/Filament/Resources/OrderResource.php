@@ -33,10 +33,16 @@ class OrderResource extends Resource
             ->schema([
                 Forms\Components\Select::make('client_id')
                     ->required()
-                    ->options(Client::all()->pluck('full_name', 'id'))
+                    ->options(
+                        Client::all()->mapWithKeys(function ($client) {
+                        return [$client->id => $client->first_name . ' ' . $client->last_name];
+                    }))
                     ->searchable(),
                 Forms\Components\Select::make('driver_id')
-                    ->options(Driver::all()->pluck('full_name', 'id'))
+                    ->options(
+                        Driver::all()->mapWithKeys(function ($client) {
+                        return [$client->id => $client->first_name . ' ' . $client->last_name];
+                    }))
                     ->searchable(),
                 Forms\Components\Select::make('status')
                     ->required()
@@ -47,7 +53,9 @@ class OrderResource extends Resource
                         'completed' => 'completed'
                     ])
                     ->default('new'),
-                Forms\Components\TextInput::make('route')
+                Forms\Components\TextInput::make('pickup_address')
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('destination_address')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('budget')
                     ->minValue(0)
@@ -70,7 +78,9 @@ class OrderResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('route')
+                Tables\Columns\TextColumn::make('pickup_address')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('destination_address')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('budget')
                     ->numeric()

@@ -24,8 +24,11 @@ class UpdateClientRequest extends FormRequest
     {
         return [
             'user_id' => ['sometimes', 'exists:users,id'],
-            'full_name' => ['sometimes', 'string', 'max:255'],
+            'first_name' => ['sometimes', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'string', 'max:255'],
             'phone' => ['sometimes', 'string', 'max:20'],
+            'country' => ['sometimes', 'string', 'max:255'],
+            'city' => ['sometimes', 'string', 'max:255'],
             'telegram_id' => [
                 'sometimes',
                 'string',

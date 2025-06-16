@@ -13,17 +13,17 @@ class Handler extends WebhookHandler
 {
     public function start(): void
     {
-        $this->chat->message('Добро пожаловать!')
+        $this->chat->message('Welcome!')
             ->keyboard(Keyboard::make()->buttons([
-                Button::make('🚗 Регистрация водителя')->action('register_driver'),
+                Button::make('🚗 Driver registration')->action('register_driver'),
             ]))->send();
     }
 
     public function register_driver(): void
     {
         // Устанавливаем первый шаг регистрации
-        $this->chat->storage()->set('registration_step', 'full_name');
-        $this->chat->message('Введите ваше полное имя (ФИО):')->send();
+        $this->chat->storage()->set('registration_step', 'first_name');
+        $this->chat->message('Please enter your first name:')->send();
     }
 
     /**
@@ -45,14 +45,15 @@ class Handler extends WebhookHandler
 
         // Используем match для маршрутизации по шагам, которые ожидают текст.
         match ($step) {
-            'full_name' => $this->handleFullName($text->toString()),
+            'first_name' => $this->handleFirstName($text->toString()),
+            'last_name' => $this->handleLastName($text->toString()),
             'license_number' => $this->handleLicenseNumber($text->toString()),
             'car_model' => $this->handleCarModel($text->toString()),
             'country' => $this->handleCountry($text->toString()),
             'city' => $this->handleCity($text->toString()),
             default => $this->chat->message('Для начала работы, пожалуйста, нажмите "Регистрация водителя".')
                 ->keyboard(Keyboard::make()->buttons([
-                    Button::make('🚗 Регистрация водителя')->action('register_driver'),
+                    Button::make('🚗 Driver registration')->action('register_driver'),
                 ]))
                 ->send(),
         };
@@ -70,7 +71,7 @@ class Handler extends WebhookHandler
         if ($step === 'license_photo') {
             $this->chat->storage()->set('license_photo_file_id', $fileId);
             $this->chat->storage()->set('registration_step', 'car_photo');
-            $this->chat->message('Спасибо. Теперь отправьте фото автомобиля.')->send();
+            $this->chat->message('Thank you. Now send a photo of the car.')->send();
         } elseif ($step === 'car_photo') {
             $this->chat->storage()->set('car_photo_file_id', $fileId);
             // Если это последнее фото, сохраняем данные водителя
@@ -81,39 +82,46 @@ class Handler extends WebhookHandler
         }
     }
 
-    protected function handleFullName(string $text): void
+    protected function handleFirstName(string $text): void
     {
-        $this->chat->storage()->set('full_name', $text);
+        $this->chat->storage()->set('first_name', $text);
         $this->chat->storage()->set('registration_step', 'license_number');
-        $this->chat->message('Введите номер лицензии или гос. номер авто:')->send();
+        $this->chat->message('Enter your last name:')->send();
+    }
+
+    protected function handleLastName(string $text): void
+    {
+        $this->chat->storage()->set('last_name', $text);
+        $this->chat->storage()->set('registration_step', 'license_number');
+        $this->chat->message('Enter the license number or state registration number of the car:')->send();
     }
 
     protected function handleLicenseNumber(string $text): void
     {
         $this->chat->storage()->set('license_number', $text);
         $this->chat->storage()->set('registration_step', 'car_model');
-        $this->chat->message('Введите марку и модель автомобиля (например, Toyota Camry):')->send();
+        $this->chat->message('Enter the make and model of your vehicle (e.g. Toyota Camry):')->send();
     }
 
     protected function handleCarModel(string $text): void
     {
         $this->chat->storage()->set('car_model', $text);
         $this->chat->storage()->set('registration_step', 'country');
-        $this->chat->message('Введите страну:')->send();
+        $this->chat->message('Enter country:')->send();
     }
 
     protected function handleCountry(string $text): void
     {
         $this->chat->storage()->set('country', $text);
         $this->chat->storage()->set('registration_step', 'city');
-        $this->chat->message('Введите город:')->send();
+        $this->chat->message('Enter city:')->send();
     }
 
     protected function handleCity(string $text): void
     {
         $this->chat->storage()->set('city', $text);
         $this->chat->storage()->set('registration_step', 'license_photo');
-        $this->chat->message('Отлично! Теперь пришлите фото водительского удостоверения:')->send();
+        $this->chat->message('Great! Now send a photo of your driver\'s license:')->send();
     }
 
     protected function saveDriver(): void
@@ -137,7 +145,8 @@ class Handler extends WebhookHandler
             Driver::create([
                 'user_id' => null, // или по логике авторизации
                 'telegram_id' => $chatId, // Сохраняем ID для связи
-                'full_name' => $data['full_name'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
                 'license_number' => $data['license_number'],
                 'car_model' => $data['car_model'],
                 'country' => $data['country'],
@@ -149,7 +158,7 @@ class Handler extends WebhookHandler
 
             // Очищаем хранилище после успешной регистрации
             $this->chat->storage()->clear();
-            $this->chat->message('Регистрация успешно завершена! Ожидайте подтверждения. 🚗')->send();
+            $this->chat->message('Registration completed successfully! Wait for confirmation. 🚗')->send();
 
         } catch (\Throwable $e) {
             // В случае ошибки сообщаем пользователю и логируем

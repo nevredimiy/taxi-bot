@@ -32,13 +32,18 @@ class ClientResource extends Resource
                 Forms\Components\Select::make('user_id')
                     ->required()
                     ->options(User::all()->pluck('name', 'id')),
-                Forms\Components\TextInput::make('full_name')
+                Forms\Components\TextInput::make('first_name')
                     ->required()
                     ->maxLength(255),
-                // Forms\Components\TextInput::make('phone')                    
-                //     ->tel()
-                //     ->required()
-                //     ->maxLength(255),
+                Forms\Components\TextInput::make('last_name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('country')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('city')
+                    ->required()
+                    ->maxLength(255),
                 PhoneInput::make('phone')
                     ->validateFor(
                         country: 'UA', // default: 'AUTO'
@@ -50,7 +55,7 @@ class ClientResource extends Resource
                     ->tel()
                     ->required()
                     ->maxLength(255),
-            ]);
+            ])->columns(3);
     }
 
     public static function table(Table $table): Table
@@ -60,11 +65,17 @@ class ClientResource extends Resource
                 Tables\Columns\TextColumn::make('user_id')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('full_name')
+                Tables\Columns\TextColumn::make('first_name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('last_name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Телефон') 
                     ->sortable()
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('country')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('city')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('telegram_id')
                     ->searchable(),

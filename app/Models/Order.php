@@ -11,7 +11,8 @@ class Order extends Model
         'client_id',
         'driver_id',
         'status',
-        'route',
+        'pickup_address',
+        'destination_address',
         'budget',
         'details'
     ];
@@ -24,5 +25,10 @@ class Order extends Model
     public function driver()
     {
         return $this->belongsTo(Driver::class, 'driver_id');
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }

@@ -24,7 +24,8 @@ class UpdateDriverRequest extends FormRequest
     {
        return [
             'user_id' => ['sometimes', 'exists:users,id'],
-            'full_name' => ['sometimes', 'string', 'max:255'],
+            'ffirst_name' => ['sometimes', 'string', 'max:255'],
+            'last_name' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', Rule::in(['pending', 'active', 'blocked'])],
 
             'license_number' => ['sometimes', 'nullable', 'string', 'max:255'],

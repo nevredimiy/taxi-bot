@@ -23,8 +23,11 @@ class StoreClientRequest extends FormRequest
     {
         return [
             'user_id' => ['required', 'exists:users,id'],
-            'full_name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20'],
+            'country' => ['required', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:255'],
             'telegram_id' => ['required', 'string', 'max:255', 'unique:clients,telegram_id'],
         ];
     }

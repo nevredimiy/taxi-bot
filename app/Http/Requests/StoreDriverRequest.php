@@ -23,7 +23,8 @@ class StoreDriverRequest extends FormRequest
     {
          return [
             'user_id' => ['required', 'exists:users,id'],
-            'full_name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'status' => ['nullable', 'in:pending,active,blocked'],
 
             'license_number' => ['nullable', 'string', 'max:255'],

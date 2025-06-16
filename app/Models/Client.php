@@ -9,13 +9,21 @@ class Client extends Model
 {
     protected $fillable = [
         'user_id',
-        'full_name',
+        'first_name',
+        'last_name',
         'phone',
+        'country',
+        'city',
         'telegram_id'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
     }
 }

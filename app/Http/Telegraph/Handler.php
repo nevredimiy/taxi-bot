@@ -4,6 +4,9 @@ namespace App\Http\Telegraph;
 
 use App\Models\Driver;
 use App\Models\Client;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
@@ -11,6 +14,8 @@ use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Mail\WelcomeClientMail;
+use Illuminate\Support\Facades\Mail;
 
 class Handler extends WebhookHandler
 {
@@ -32,8 +37,8 @@ class Handler extends WebhookHandler
 
     public function register_client(): void
     {
-        $this->chat->storage()->set('registration_step', 'client_first_name');
-        $this->chat->message('Please enter your first name:')->send();
+        $this->chat->storage()->set('registration_step', 'client_email');
+        $this->chat->message('Please enter your email:')->send();
     }
 
     /**
@@ -48,6 +53,20 @@ class Handler extends WebhookHandler
         $step = $this->chat->storage()->get('registration_step');
 
         switch ($step) {
+
+            case 'client_email':
+
+                $email = $text;
+                if (User::where('email', $email)->exists()) {
+                    $this->chat->message('🚫 This email is already taken. Try another one.')->send();
+                    return;
+                }
+
+                $this->chat->storage()->set('client_email', $text);
+                $this->chat->storage()->set('registration_step', 'client_first_name');
+                $this->chat->message('Please enter your first name:')->send();
+                break;
+
             case 'client_first_name':
                 $this->chat->storage()->set('client_first_name', $text);
                 $this->chat->storage()->set('registration_step', 'client_last_name');
@@ -95,7 +114,7 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'driver_car_model');
                 $this->chat->message('Enter country:')->send();
                 break;
-                
+
             case 'driver_car_model':
                 $this->chat->storage()->set('driver_car_model', $text);
                 $this->chat->storage()->set('registration_step', 'driver_city');
@@ -131,6 +150,21 @@ class Handler extends WebhookHandler
 
     protected function saveClient(): void
     {
+
+        $first_name = $this->chat->storage()->get('client_first_name');
+        $last_name = $this->chat->storage()->get('client_last_name');
+        $email = $this->chat->storage()->get('client_email');
+        $password = Str::random(10);
+
+        $user = User::create([
+            'name' => $first_name . '_' . $last_name,
+            'email' => $email,
+            'password' => Hash::make($password),
+            'role' => 'client',
+        ]);
+
+        Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
+
         $client = new Client();
         $client->first_name = $this->chat->storage()->get('client_first_name');
         $client->last_name = $this->chat->storage()->get('client_last_name');
@@ -138,6 +172,7 @@ class Handler extends WebhookHandler
         $client->country = $this->chat->storage()->get('client_country');
         $client->city = $this->chat->storage()->get('client_city');
         $client->telegram_id = $this->message->from()->id();
+        $client->user_id = $user->id;
 
         $client->save();
 

@@ -22,8 +22,21 @@ class DriverController extends Controller
      */
     public function store(StoreDriverRequest $request)
     {
-        return Driver::create($request->all());
+        $data = $request->validated();
+
+        if ($request->hasFile('license_photo')) {
+            $data['license_photo'] = $request->file('license_photo')->store('license_photos', 'public');
+        }
+
+        if ($request->hasFile('car_photo')) {
+            $data['car_photo'] = $request->file('car_photo')->store('car_photos', 'public');
+        }
+
+        $driver = Driver::create($data);
+
+        return response()->json($driver, 201);
     }
+
 
     /**
      * Display the specified resource.

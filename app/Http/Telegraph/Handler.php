@@ -2,12 +2,14 @@
 
 namespace App\Http\Telegraph;
 
+use App\Models\Driver;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Stringable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class Handler extends WebhookHandler
 {
@@ -66,7 +68,7 @@ class Handler extends WebhookHandler
     {
         $step = $this->chat->storage()->get('registration_step');
         // Получаем file_id из объекта сообщения
-        $fileId = $this->message->photo()->last()->fileId();
+        $fileId = $this->message->photos()->last()->id();
 
         if ($step === 'license_photo') {
             $this->chat->storage()->set('license_photo_file_id', $fileId);
@@ -126,7 +128,7 @@ class Handler extends WebhookHandler
 
     protected function saveDriver(): void
     {
-        $data = $this->chat->storage()->all();
+        $data = $this->chat->storage()->get;
         $chatId = $this->chat->chat_id; // Используем ID чата для уникальности
 
         try {
@@ -157,7 +159,7 @@ class Handler extends WebhookHandler
             ]);
 
             // Очищаем хранилище после успешной регистрации
-            $this->chat->storage()->clear();
+            // $this->chat->storage()->clear();
             $this->chat->message('Registration completed successfully! Wait for confirmation. 🚗')->send();
 
         } catch (\Throwable $e) {

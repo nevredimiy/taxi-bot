@@ -174,58 +174,64 @@ class Handler extends WebhookHandler
         }
     }
 
-    // public function handlePhoto(Photo $photo): void
-    // {
-    //     $step = $this->chat->storage()->get('registration_step');
-
-    //     if ($step === 'license_photo') {
-    //         $filename = 'license_' . now()->timestamp . '.jpg';
-    //         $relativePath = 'license_photos/' . $filename;
-    //         Telegraph::store($photo, Storage::path('public/' . $relativePath));
-
-    //         $this->chat->storage()->set('license_photo', $relativePath);
-    //         $this->chat->storage()->set('registration_step', 'car_photo');
-
-    //         $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
-    //     }
-
-    //     if ($step === 'car_photo') {
-    //         $filename = 'car_' . now()->timestamp . '.jpg';
-    //         $relativePath = 'car_photos/' . $filename;
-    //         Telegraph::store($photo, Storage::path('public/' . $relativePath));
-
-    //         $this->chat->storage()->set('car_photo', $relativePath);
-
-    //         $this->saveDriver(); // Финальная регистрация
-    //     }
-    // }
-
     public function handlePhoto(Photo $photo): void
     {
         $step = $this->chat->storage()->get('registration_step');
 
-        $filename = match ($step) {
-            'license_photo' => 'license_' . now()->timestamp . '.jpg',
-            'car_photo' => 'car_' . now()->timestamp . '.jpg',
-            default => null
-        };
-
-        if (!$filename) return;
-
-        $relativePath = ($step === 'license_photo' ? 'license_photos/' : 'car_photos/') . $filename;
-
-        Storage::makeDirectory('public/' . dirname($relativePath)); // Создаём папку если нет
-        Telegraph::store($photo, Storage::path('public/' . $relativePath));
-
-        $this->chat->storage()->set($step, $relativePath);
-
         if ($step === 'license_photo') {
+            $filename = 'license_' . now()->timestamp . '.jpg';
+            $relativePath = 'license_photos/';
+            Storage::makeDirectory($relativePath); // создаём папку если нет
+            $path = Storage::path($relativePath . '/' . $filename); // полный путь к файлу
+
+            Telegraph::store($photo, $path); // сохраняем файл в нужное место
+
+            $this->chat->storage()->set('license_photo', 'license_photos/' . $filename);
+
             $this->chat->storage()->set('registration_step', 'car_photo');
             $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
-        } else {
-            $this->saveDriver();
+        }
+
+        if ($step === 'car_photo') {
+            $filename = 'car_' . now()->timestamp . '.jpg';
+            $relativePath = 'car_photos/';
+            Storage::makeDirectory($relativePath); // создаём папку если нет
+            $path = Storage::path($relativePath . '/' . $filename); // полный путь к файлу
+
+            Telegraph::store($photo, $path); // сохраняем файл в нужное место
+
+            $this->chat->storage()->set('car_photo', 'car_photos/' . $filename); // сохраняем путь для БД
+
+            $this->saveDriver(); // Финальная регистрация
         }
     }
+
+    // public function handlePhoto(Photo $photo): void
+    // {
+    //     $step = $this->chat->storage()->get('registration_step');
+
+    //     $filename = match ($step) {
+    //         'license_photo' => 'license_' . now()->timestamp . '.jpg',
+    //         'car_photo' => 'car_' . now()->timestamp . '.jpg',
+    //         default => null
+    //     };
+
+    //     if (!$filename) return;
+
+    //     $relativePath = ($step === 'license_photo' ? 'license_photos/' : 'car_photos/') . $filename;
+
+    //     Storage::makeDirectory('public/' . dirname($relativePath)); // Создаём папку если нет
+    //     Telegraph::store($photo, Storage::path('public/' . $relativePath));
+
+    //     $this->chat->storage()->set($step, $relativePath);
+
+    //     if ($step === 'license_photo') {
+    //         $this->chat->storage()->set('registration_step', 'car_photo');
+    //         $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
+    //     } else {
+    //         $this->saveDriver();
+    //     }
+    // }
 
 
     protected function saveClient(): void

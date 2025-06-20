@@ -47,8 +47,6 @@ class Handler extends WebhookHandler
     {
         $telegramId = $this->chat->chat_id;
 
-        Log::info("🔔 telegramId #{$telegramId} ");
-
         $user = User::where('telegram_id', $telegramId)->first();
 
         if (!$user || $user->role !== 'client') {
@@ -59,12 +57,10 @@ class Handler extends WebhookHandler
                     ])
                 )
                 ->send();
-                return;
+            return;
         }
 
         $client = $user->client;
-
-         Log::info("🔔 client #{$client->id} ");
 
         if ($client) {
             $this->chat
@@ -106,7 +102,7 @@ class Handler extends WebhookHandler
         Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
 
         $registrationStep = $this->chat->storage()->get('registration_step');
- 
+
         if (Str::startsWith($registrationStep, 'client_update_')) {
             $this->handleUpdateStep($registrationStep, $text);
             return;
@@ -131,13 +127,12 @@ class Handler extends WebhookHandler
         // }
 
         $this->chat->message('Use /start to begin.')->send();
-
     }
 
     protected function handleRegistrationStep(string $step, Stringable $text): void
     {
         switch ($step) {
-                 // Регистрация клиента
+            // Регистрация клиента
             case 'client_email':
                 $email = $text;
                 $domain = substr(strrchr($email, "@"), 1);
@@ -302,7 +297,7 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'client_update_city');
                 $this->chat->message('Enter your city:')->send();
                 break;
-            
+
             case 'client_update_city':
                 $this->chat->storage()->set('client_city', $text);
                 $this->saveUpdatedClient();
@@ -324,7 +319,7 @@ class Handler extends WebhookHandler
                     ])
                 )
                 ->send();
-                return;
+            return;
         }
 
         $client = $user->client;
@@ -352,7 +347,7 @@ class Handler extends WebhookHandler
 
     public function handlePhoto(Photo $photo): void
     {
-       
+
         $step = $this->chat->storage()->get('registration_step');
 
         if ($step === 'license_photo') {
@@ -391,7 +386,7 @@ class Handler extends WebhookHandler
 
         $telegramId = $this->message->from()?->id();
         $user = User::where('telegram_id', $telegramId)->first();
-        if($user){
+        if ($user) {
             $this->chat
                 ->message('⚠️ You are already registered as a client. What would you like to do?')
                 ->keyboard(
@@ -408,7 +403,7 @@ class Handler extends WebhookHandler
         $last_name = $this->chat->storage()->get('client_last_name');
         $email = $this->chat->storage()->get('client_email');
         $password = Str::random(10);
-        
+
 
         $user = User::create([
             'name' => $first_name . '_' . $last_name,
@@ -418,7 +413,7 @@ class Handler extends WebhookHandler
             'telegram_id' => $telegramId,
         ]);
 
-        
+
         try {
             Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
         } catch (\Throwable $e) {
@@ -440,7 +435,7 @@ class Handler extends WebhookHandler
         $this->chat->message('✅ You have been successfully registered as a client!')->send();
     }
 
-   public function update_client_info(): void
+    public function update_client_info(): void
     {
         $this->chat->storage()->set('registration_step', 'client_update_first_name');
         $this->chat->message('🔄 Let\'s update your info. Enter your first name:')
@@ -517,7 +512,7 @@ class Handler extends WebhookHandler
                     ])
                 )
                 ->send();
-                return;
+            return;
         }
 
         $client = $user->client;
@@ -557,7 +552,8 @@ class Handler extends WebhookHandler
         foreach ($drivers as $driver) {
             if ($driver->user && $driver->user->telegram_id) {
                 Telegraph::chat($driver->user->telegram_id)
-                    ->message("🚕 New order!\n
+                    ->message(
+                        "🚕 New order!\n
                         📍 From: {$order->pickup_address}\n
                         🏁 To: {$order->destination_address}
                         💵 Budget: {$order->budget}\n
@@ -570,7 +566,7 @@ class Handler extends WebhookHandler
                     )
                     ->send();
                 // Логгирование
-            Log::info("🔔 Order #{$order->id} sent to driver ID={$driver->id}, Telegram ID={$driver->user->telegram_id}");
+                Log::info("🔔 Order #{$order->id} sent to driver ID={$driver->id}, Telegram ID={$driver->user->telegram_id}");
             }
         }
     }
@@ -585,7 +581,8 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $telegramId = $this->message->from()?->id();
+        // $telegramId = $this->message->from()?->id();
+        $telegramId = $this->chat->chat_id;
 
         $user = User::where('telegram_id', $telegramId)->first();
 
@@ -610,7 +607,7 @@ class Handler extends WebhookHandler
 
         // Уведомить клиента
         $clientUser = $order->client->user;
-       
+
 
         if ($clientUser && $clientUser->telegram_id) {
             Telegraph::chat($clientUser->telegram_id)
@@ -629,7 +626,7 @@ class Handler extends WebhookHandler
             ->forget('client_email')
             ->forget('driver_first_name')
             ->forget('client_first_name');
-            // можешь добавить и другие поля при необходимости
+        // можешь добавить и другие поля при необходимости
 
         $this->chat->message('❌ Action cancelled.')->send();
 

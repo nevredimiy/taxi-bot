@@ -47,6 +47,8 @@ class Handler extends WebhookHandler
     {
         $telegramId = $this->chat->chat_id;
 
+        Log::info("🔔 telegramId #{$telegramId} ");
+
         $user = User::where('telegram_id', $telegramId)->first();
 
         if (!$user || $user->role !== 'client') {
@@ -385,11 +387,26 @@ class Handler extends WebhookHandler
     protected function saveClient(): void
     {
 
+        $telegramId = $this->message->from()?->id();
+        $user = User::where('telegram_id', $telegramId)->first();
+        if($user){
+            $this->chat
+                ->message('⚠️ You are already registered as a client. What would you like to do?')
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('🔄 Update info')->action('update_client_info'),
+                        Button::make('📝 Create order')->action('create_order'),
+                    ])
+                )
+                ->send();
+            return;
+        }
+
         $first_name = $this->chat->storage()->get('client_first_name');
         $last_name = $this->chat->storage()->get('client_last_name');
         $email = $this->chat->storage()->get('client_email');
         $password = Str::random(10);
-        $telegramId = $this->message->from()?->id();
+        
 
         $user = User::create([
             'name' => $first_name . '_' . $last_name,

@@ -60,6 +60,21 @@ class Handler extends WebhookHandler
             case 'client_email':
 
                 $email = $text;
+                $domain = substr(strrchr($email, "@"), 1);
+
+                // 1. Проверка корректности email
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $this->chat->message('❌ Invalid email format.')->send();
+                    return;
+                }
+
+                // 2. Проверка DNS (наличие MX-записей у домена)
+                if (!checkdnsrr($domain, 'MX')) {
+                    $this->chat->message("❌ Email domain '$domain' does not accept mail.")->send();
+                    return;
+                }
+
+                // 3. Проверка уникальности
                 if (User::where('email', $email)->exists()) {
                     $this->chat->message('🚫 This email is already taken. Try another one.')->send();
                     return;
@@ -253,7 +268,14 @@ class Handler extends WebhookHandler
             'role' => 'client',
         ]);
 
-        Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
+        
+        try {
+            Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
+        } catch (\Throwable $e) {
+            Log::error('Не удалось отправить письмо клиенту: ' . $e->getMessage());
+            $this->chat->message('⚠️ Клиент зарегистрирован, но письмо не удалось отправить.')->send();
+        }
+
 
         $client = new Client();
         $client->first_name = $this->chat->storage()->get('client_first_name');

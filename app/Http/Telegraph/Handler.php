@@ -64,6 +64,8 @@ class Handler extends WebhookHandler
 
         $client = $user->client;
 
+         Log::info("🔔 client #{$client->id} ");
+
         if ($client) {
             $this->chat
                 ->message('⚠️ You are already registered as a client. What would you like to do?')

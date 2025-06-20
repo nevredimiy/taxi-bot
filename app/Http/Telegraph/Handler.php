@@ -386,7 +386,6 @@ class Handler extends WebhookHandler
         $client->phone = $this->chat->storage()->get('client_phone');
         $client->country = $this->chat->storage()->get('client_country');
         $client->city = $this->chat->storage()->get('client_city');
-        $client->telegram_id = $this->message->from()->id();
         $client->user_id = $user->id;
 
         $client->save();
@@ -458,7 +457,28 @@ class Handler extends WebhookHandler
 
     protected function saveOrder(): void
     {
-        $client = Client::where('telegram_id', $this->message->from()->id())->first();
+
+        $telegramId = $this->message->from()?->id();
+
+        $user = User::where('telegram_id', $telegramId)->first();
+
+        if (!$user || $user->role !== 'client') {
+            $this->chat->message('❌ You are not registered as a client.')
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('🙋 Client registration')->action('register_client'),
+                    ])
+                )
+                ->send();
+                return;
+        }
+
+        $client = $user->client;
+
+        if (!$client) {
+            $this->chat->message('❌ Client profile not found.')->send();
+            return;
+        }
 
         $order = Order::create([
             'client_id' => $client->id,
@@ -518,7 +538,21 @@ class Handler extends WebhookHandler
             return;
         }
 
-        $driver = Driver::where('telegram_id', $this->message->from()->id())->first();
+        $telegramId = $this->message->from()?->id();
+
+        $user = User::where('telegram_id', $telegramId)->first();
+
+        if (!$user || $user->role !== 'driver') {
+            $this->chat->message('❌ You are not registered as a driver.')->send();
+            return;
+        }
+
+        $driver = $user->driver;
+
+        if (!$driver) {
+            $this->chat->message('❌ Driver profile not found.')->send();
+            return;
+        }
 
         $order->update([
             'driver_id' => $driver->id,
@@ -528,8 +562,14 @@ class Handler extends WebhookHandler
         $this->chat->message('✅ You have accepted the order!')->send();
 
         // Уведомить клиента
-        Telegraph::message("🚕 Your order has been accepted by the driver {$driver->full_name}")
-            ->send();
+        $clientUser = $order->client->user;
+       
+
+        if ($clientUser && $clientUser->telegram_id) {
+            Telegraph::chat($clientUser->telegram_id)
+                ->message("🚕 Your order has been accepted by the driver {$driver->first_name} {$driver->last_name}")
+                ->send();
+        }
     }
 
 

@@ -47,7 +47,20 @@ class Handler extends WebhookHandler
     {
         $telegramId = $this->chat->chat_id;
 
-        $client = Client::where('telegram_id', $telegramId)->first();
+        $user = User::where('telegram_id', $telegramId)->first();
+
+        if (!$user || $user->role !== 'client') {
+            $this->chat->message('❌ You are not registered as a client.')
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('🙋 Client registration')->action('register_client'),
+                    ])
+                )
+                ->send();
+                return;
+        }
+
+        $client = $user->client;
 
         if ($client) {
             $this->chat
@@ -297,7 +310,22 @@ class Handler extends WebhookHandler
     {
         $telegramId = $this->message->from()->id();
 
-        Client::where('telegram_id', $telegramId)->update([
+        $user = User::where('telegram_id', $telegramId)->first();
+
+        if (!$user || $user->role !== 'client') {
+            $this->chat->message('❌ You are not registered as a client.')
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('🙋 Client registration')->action('register_client'),
+                    ])
+                )
+                ->send();
+                return;
+        }
+
+        $client = $user->client;
+
+        $client->update([
             'first_name' => $this->chat->storage()->get('client_first_name'),
             'last_name'  => $this->chat->storage()->get('client_last_name'),
             'phone'      => $this->chat->storage()->get('client_phone'),

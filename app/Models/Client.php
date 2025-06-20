@@ -13,8 +13,7 @@ class Client extends Model
         'last_name',
         'phone',
         'country',
-        'city',
-        'telegram_id'
+        'city'
     ];
 
     public function user()

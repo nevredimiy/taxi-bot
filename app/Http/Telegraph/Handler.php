@@ -176,9 +176,7 @@ class Handler extends WebhookHandler
 
     public function handlePhoto(Photo $photo): void
     {
-        Log::debug(print_r($photo, true));
-        Log::info('Photo methods:', get_class_methods($photo));
-        
+       
         $step = $this->chat->storage()->get('registration_step');
 
         if ($step === 'license_photo') {
@@ -188,7 +186,7 @@ class Handler extends WebhookHandler
             $path = Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
             $absolutePath = storage_path('app/public/' . $relativePath);
 
-            Telegraph::downloadFile($photo->fileId(), $absolutePath); // сохраняем файл в нужное место
+            Telegraph::downloadFile($photo->id(), $absolutePath); // сохраняем файл в нужное место
 
             $this->chat->storage()->set('license_photo', 'license_photos/' . $filename);
 
@@ -204,7 +202,7 @@ class Handler extends WebhookHandler
 
             $absolutePath = storage_path('app/public/' . $relativePath);
 
-            Telegraph::downloadFile($photo->fileId(), $absolutePath); // сохраняем файл в нужное место
+            Telegraph::downloadFile($photo->id(), $absolutePath); // сохраняем файл в нужное место
 
             $this->chat->storage()->set('car_photo', 'car_photos/' . $filename); // сохраняем путь для БД
 

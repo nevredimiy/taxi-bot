@@ -269,6 +269,14 @@ class Handler extends WebhookHandler
     protected function saveClient(): void
     {
 
+        $telegramId = $this->message->from()->id();
+
+        // Если клиент с таким telegram_id уже существует
+        if (Client::where('telegram_id', $telegramId)->exists()) {
+            $this->chat->message('⚠️ You are already registered as a client.')->send();
+            return;
+        }
+
         $first_name = $this->chat->storage()->get('client_first_name');
         $last_name = $this->chat->storage()->get('client_last_name');
         $email = $this->chat->storage()->get('client_email');

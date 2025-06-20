@@ -183,10 +183,10 @@ class Handler extends WebhookHandler
             $filename = 'license_' . now()->timestamp . '.jpg';
             $relativePath = 'license_photos/';
             Storage::disk('public')->makeDirectory($relativePath); // создаём папку если нет
-            $path = Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
+            Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
             $absolutePath = storage_path('app/public/' . $relativePath);
 
-            Telegraph::downloadFile($photo->id(), $absolutePath); // сохраняем файл в нужное место
+            Telegraph::store($photo, $absolutePath, $filename); // сохраняем файл в нужное место
 
             $this->chat->storage()->set('license_photo', 'license_photos/' . $filename);
 
@@ -198,11 +198,11 @@ class Handler extends WebhookHandler
             $filename = 'car_' . now()->timestamp . '.jpg';
             $relativePath = 'car_photos/';
             Storage::disk('public')->makeDirectory($relativePath); // создаём папку если нет
-            $path = Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
+            Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
 
             $absolutePath = storage_path('app/public/' . $relativePath);
 
-            Telegraph::downloadFile($photo->id(), $absolutePath); // сохраняем файл в нужное место
+            Telegraph::store($photo, $absolutePath, $filename); // сохраняем файл в нужное место
 
             $this->chat->storage()->set('car_photo', 'car_photos/' . $filename); // сохраняем путь для БД
 

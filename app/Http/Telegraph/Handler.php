@@ -29,28 +29,39 @@ class Handler extends WebhookHandler
             ->keyboard(Keyboard::make()->buttons([
                 Button::make('🚗 Driver registration')->action('register_driver'),
                 Button::make('🙋 Client registration')->action('register_client'),
-                Button::make('📝 Создать заказ')->action('create_order')
+                Button::make('📝 Create order')->action('create_order')
             ]))->send();
     }
 
     public function register_driver(): void
     {
-        // Устанавливаем первый шаг регистрации
-        $this->chat->storage()->set('registration_step', 'driver_email');
+        $this->chat->storage()
+            ->forget('registration_step')
+            ->forget('order_step')
+            ->set('registration_step', 'driver_email');
+
         $this->chat->message('Please enter your email:')->send();
     }
 
     public function register_client(): void
     {
-        $this->chat->storage()->set('registration_step', 'client_email');
+        $this->chat->storage()
+            ->forget('registration_step')
+            ->forget('order_step')
+            ->set('registration_step', 'client_email');
+
         $this->chat->message('Please enter your email:')->send();
     }
 
     public function create_order(): void
     {
-        $this->chat->storage()->set('order_step', 'pickup_address');
+        $this->chat->storage()
+            ->forget('registration_step')
+            ->forget('order_step')
+            ->set('order_step', 'pickup_address');
+
         $this->chat->message('Enter pickup address:')->send();
-     }
+    }
 
     /**
      * Обрабатывает текстовые сообщения от пользователя.
@@ -58,14 +69,29 @@ class Handler extends WebhookHandler
      */
     protected function handleChatMessage(Stringable $text): void
     {
-
         Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
 
-        $step = $this->chat->storage()->get('registration_step');
+        $registrationStep = $this->chat->storage()->get('registration_step');
+        $orderStep = $this->chat->storage()->get('order_step');
 
+        if ($registrationStep) {
+            $this->handleRegistrationStep($registrationStep, $text);
+            return;
+        }
+
+        if ($orderStep) {
+            $this->handleOrderStep($orderStep, $text);
+            return;
+        }
+
+        $this->chat->message('Use /start to begin.')->send();
+
+    }
+
+    protected function handleRegistrationStep(string $step, Stringable $text): void
+    {
         switch ($step) {
-
-            // Регистрация клиента
+                 // Регистрация клиента
             case 'client_email':
                 $email = $text;
                 $domain = substr(strrchr($email, "@"), 1);
@@ -117,7 +143,6 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('client_city', $text);
                 $this->saveClient();
                 break;
-
             // Регистрация водителя
             case 'driver_email':
                 $email = $text;
@@ -176,32 +201,32 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('car_photo', $text);
                 $this->handlePhoto($this->message->photos()->last());
                 break;
+        }
+    }
 
-            // Создания заказа
+    protected function handleOrderStep(string $step, Stringable $text): void
+    {
+        switch ($step) {
             case 'pickup_address':
                 $this->chat->storage()->set('pickup_address', $text)
                     ->set('order_step', 'destination_address');
                 $this->chat->message('Enter destination address:')->send();
                 break;
-
             case 'destination_address':
                 $this->chat->storage()->set('destination_address', $text)
                     ->set('order_step', 'budget');
                 $this->chat->message('Enter budget:')->send();
                 break;
-
             case 'budget':
-                $this->chat->storage()->set('budget', $text)->set('order_step', 'details');
+                $this->chat->storage()->set('budget', $text)
+                    ->set('order_step', 'details');
                 $this->chat->message('Additional details? (or "-" if none):')->send();
                 break;
-
             case 'details':
                 $this->chat->storage()->set('details', $text);
-                $this->saveOrder(); // Функция сохранения
+                $this->saveOrder();
+                $this->chat->storage()->forget('order_step');
                 break;
-
-            default:
-                $this->chat->message('Use /start to begin.')->send();
         }
     }
 
@@ -397,5 +422,33 @@ class Handler extends WebhookHandler
             ->send();
     }
 
+
+    public function cancel(): void
+    {
+        $this->chat->storage()
+            ->forget('registration_step')
+            ->forget('order_step')
+            ->forget('driver_email')
+            ->forget('client_email')
+            ->forget('driver_first_name')
+            ->forget('client_first_name');
+            // можешь добавить и другие поля при необходимости
+
+        $this->chat->message('❌ Action cancelled.')->send();
+
+        $this->start(); // показать меню заново
+    }
+
+
+    // public function handleCommand(string $name): void
+    // {
+    //     if ($name === 'cancel') {
+    //         $this->cancel();
+    //     } elseif ($name === 'start') {
+    //         $this->start();
+    //     } else {
+    //         $this->chat->message('❓ Unknown command.')->send();
+    //     }
+    // }
 
 }

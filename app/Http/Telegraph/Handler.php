@@ -480,6 +480,7 @@ class Handler extends WebhookHandler
         // Example: Notify all drivers in the same city as the order's client
         $client = $order->client;
         $drivers = Driver::where('city', $client->city)->where('status', 'active')->get();
+        Log::info("🔔 Order #{$order->id} count drivers = {$drivers->count()}");
 
         foreach ($drivers as $driver) {
             if ($driver->user && $driver->user->telegram_id) {
@@ -496,6 +497,8 @@ class Handler extends WebhookHandler
                         ])
                     )
                     ->send();
+                // Логгирование
+            Log::info("🔔 Order #{$order->id} sent to driver ID={$driver->id}, Telegram ID={$driver->user->telegram_id}");
             }
         }
     }

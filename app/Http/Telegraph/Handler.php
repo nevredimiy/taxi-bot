@@ -183,7 +183,7 @@ class Handler extends WebhookHandler
             $relativePath = 'license_photos/' . $filename;
             Telegraph::store($photo, Storage::path('public/' . $relativePath));
 
-            $this->chat->storage()->set('license_photo', 'storage/' . $relativePath);
+            $this->chat->storage()->set('license_photo', $relativePath);
             $this->chat->storage()->set('registration_step', 'car_photo');
 
             $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
@@ -194,7 +194,7 @@ class Handler extends WebhookHandler
             $relativePath = 'car_photos/' . $filename;
             Telegraph::store($photo, Storage::path('public/' . $relativePath));
 
-            $this->chat->storage()->set('car_photo', 'storage/' . $relativePath);
+            $this->chat->storage()->set('car_photo', $relativePath);
 
             $this->saveDriver(); // Финальная регистрация
         }

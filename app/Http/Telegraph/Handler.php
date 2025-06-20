@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Mail\WelcomeClientMail;
 use Illuminate\Support\Facades\Mail;
+use DefStudio\Telegraph\DTO\Photo;
+
 
 
 class Handler extends WebhookHandler
@@ -150,24 +152,51 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('license_photo', $text);
                 $filename = 'license_' . now()->timestamp . '.jpg';
                 $path = 'license_photos/' . $filename;
-                Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
-                // Сохраняем в хранилище (например, в сессию)
-                $this->chat->storage()->set('license_photo', 'storage/' . $path);
-                $this->chat->storage()->set('registration_step', 'car_photo');
-                $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
+                // Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
+                // $this->chat->storage()->set('license_photo', 'storage/' . $path);
+                // $this->chat->storage()->set('registration_step', 'car_photo');
+                // $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
+                $this->handlePhoto($this->message->photos()->last());
                 break;
 
             case 'car_photo':
                 $this->chat->storage()->set('car_photo', $text);
                 $filename = 'car_' . now()->timestamp . '.jpg';
                 $path = 'car_photos/' . $filename;
-                Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
-                $this->chat->storage()->set('car_photo', 'storage/' . $path);
-                $this->saveDriver(); // Финальный шаг
+                // Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
+                // $this->chat->storage()->set('car_photo', 'storage/' . $path);
+                // $this->saveDriver();
+                $this->handlePhoto($this->message->photos()->last());
                 break;
 
             default:
                 $this->chat->message('Use /start to begin.')->send();
+        }
+    }
+
+    public function handlePhoto(Photo $photo): void
+    {
+        $step = $this->chat->storage()->get('registration_step');
+
+        if ($step === 'license_photo') {
+            $filename = 'license_' . now()->timestamp . '.jpg';
+            $relativePath = 'license_photos/' . $filename;
+            Telegraph::store($photo, Storage::path('public/' . $relativePath));
+
+            $this->chat->storage()->set('license_photo', 'storage/' . $relativePath);
+            $this->chat->storage()->set('registration_step', 'car_photo');
+
+            $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
+        }
+
+        if ($step === 'car_photo') {
+            $filename = 'car_' . now()->timestamp . '.jpg';
+            $relativePath = 'car_photos/' . $filename;
+            Telegraph::store($photo, Storage::path('public/' . $relativePath));
+
+            $this->chat->storage()->set('car_photo', 'storage/' . $relativePath);
+
+            $this->saveDriver(); // Финальная регистрация
         }
     }
 
@@ -200,47 +229,10 @@ class Handler extends WebhookHandler
         $client->save();
 
         $this->chat->message('✅ You have been successfully registered as a client!')->send();
-
-        // Clear storage
-        // $this->chat->storage()->forget;
     }
-
-    /**
-     * Обрабатывает получение фото от пользователя.
-     */
-    public function handlePhoto(\DefStudio\Telegraph\DTO\Photo $photo): void
-    {
-        $step = $this->chat->storage()->get('registration_step');
-
-        if ($step === 'license_photo') {
-            // Генерируем уникальное имя файла
-            $filename = 'license_' . now()->timestamp . '.jpg';
-
-            // Сохраняем фото в папку
-            $path = 'license_photos/' . $filename;
-            Telegraph::store($photo, Storage::path('public/' . $path));
-
-            // Сохраняем в хранилище (например, в сессию)
-            $this->chat->storage()->set('license_photo', 'storage/' . $path);
-            $this->chat->storage()->set('registration_step', 'car_photo');
-
-            $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
-        } elseif ($step === 'car_photo') {
-            $filename = 'car_' . now()->timestamp . '.jpg';
-            $path = 'car_photos/' . $filename;
-            Telegraph::store($photo, Storage::path('public/' . $path));
-
-            $this->chat->storage()->set('car_photo', 'storage/' . $path);
-            $this->saveDriver(); // Финальный шаг
-        }
-    }
-
 
     protected function saveDriver(): void
     {
-        // $chatId = $this->chat->chatId;
-        // $chatId = $this->message->from()->id();
-
         $data = [
             'first_name' => $this->chat->storage()->get('driver_first_name'),
             'last_name' => $this->chat->storage()->get('driver_last_name'),
@@ -268,7 +260,6 @@ class Handler extends WebhookHandler
         // Создание водителя
         Driver::create([
             'user_id' => $user->id,
-            // 'telegram_id' => $chatId,
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'license_number' => $data['license_number'],
@@ -284,6 +275,5 @@ class Handler extends WebhookHandler
         Mail::to($user->email)->send(new WelcomeClientMail($user, $password));
 
         $this->chat->message('🎉 You have been registered as a driver! Please wait for approval.')->send();
-        // $this->chat->storage()->forgetAll(); // Очистка сессии
     }
 }

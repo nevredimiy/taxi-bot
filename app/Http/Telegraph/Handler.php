@@ -5,6 +5,7 @@ namespace App\Http\Telegraph;
 use App\Models\Driver;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\Order;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use DefStudio\Telegraph\Facades\Telegraph;
@@ -28,6 +29,7 @@ class Handler extends WebhookHandler
             ->keyboard(Keyboard::make()->buttons([
                 Button::make('🚗 Driver registration')->action('register_driver'),
                 Button::make('🙋 Client registration')->action('register_client'),
+                Button::make('📝 Создать заказ')->action('create_order')
             ]))->send();
     }
 
@@ -44,6 +46,12 @@ class Handler extends WebhookHandler
         $this->chat->message('Please enter your email:')->send();
     }
 
+    public function create_order(): void
+    {
+        $this->chat->storage()->set('order_step', 'pickup_address');
+        $this->chat->message('Enter pickup address:')->send();
+     }
+
     /**
      * Обрабатывает текстовые сообщения от пользователя.
      * @param Stringable $text
@@ -57,29 +65,25 @@ class Handler extends WebhookHandler
 
         switch ($step) {
 
+            // Регистрация клиента
             case 'client_email':
-
                 $email = $text;
                 $domain = substr(strrchr($email, "@"), 1);
-
                 // 1. Проверка корректности email
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $this->chat->message('❌ Invalid email format.')->send();
                     return;
                 }
-
                 // 2. Проверка DNS (наличие MX-записей у домена)
                 if (!checkdnsrr($domain, 'MX')) {
                     $this->chat->message("❌ Email domain '$domain' does not accept mail.")->send();
                     return;
                 }
-
                 // 3. Проверка уникальности
                 if (User::where('email', $email)->exists()) {
                     $this->chat->message('🚫 This email is already taken. Try another one.')->send();
                     return;
                 }
-
                 $this->chat->storage()->set('client_email', $text);
                 $this->chat->storage()->set('registration_step', 'client_first_name');
                 $this->chat->message('Please enter your first name:')->send();
@@ -90,7 +94,6 @@ class Handler extends WebhookHandler
                 $this->chat->storage()->set('registration_step', 'client_last_name');
                 $this->chat->message('Enter your last name:')->send();
                 break;
-
 
             case 'client_last_name':
                 $this->chat->storage()->set('client_last_name', $text);
@@ -115,6 +118,7 @@ class Handler extends WebhookHandler
                 $this->saveClient();
                 break;
 
+            // Регистрация водителя
             case 'driver_email':
                 $email = $text;
                 if (User::where('email', $email)->exists()) {
@@ -165,23 +169,35 @@ class Handler extends WebhookHandler
 
             case 'license_photo':
                 $this->chat->storage()->set('license_photo', $text);
-                $filename = 'license_' . now()->timestamp . '.jpg';
-                $path = 'license_photos/' . $filename;
-                // Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
-                // $this->chat->storage()->set('license_photo', 'storage/' . $path);
-                // $this->chat->storage()->set('registration_step', 'car_photo');
-                // $this->chat->message('License photo saved ✅ Now send a photo of your car:')->send();
                 $this->handlePhoto($this->message->photos()->last());
                 break;
 
             case 'car_photo':
                 $this->chat->storage()->set('car_photo', $text);
-                $filename = 'car_' . now()->timestamp . '.jpg';
-                $path = 'car_photos/' . $filename;
-                // Telegraph::store($this->message->photos()->last(), Storage::path('public/' . $path));
-                // $this->chat->storage()->set('car_photo', 'storage/' . $path);
-                // $this->saveDriver();
                 $this->handlePhoto($this->message->photos()->last());
+                break;
+
+            // Создания заказа
+            case 'pickup_address':
+                $this->chat->storage()->set('pickup_address', $text)
+                    ->set('order_step', 'destination_address');
+                $this->chat->message('Enter destination address:')->send();
+                break;
+
+            case 'destination_address':
+                $this->chat->storage()->set('destination_address', $text)
+                    ->set('order_step', 'budget');
+                $this->chat->message('Enter budget:')->send();
+                break;
+
+            case 'budget':
+                $this->chat->storage()->set('budget', $text)->set('order_step', 'details');
+                $this->chat->message('Additional details? (or "-" if none):')->send();
+                break;
+
+            case 'details':
+                $this->chat->storage()->set('details', $text);
+                $this->saveOrder(); // Функция сохранения
                 break;
 
             default:
@@ -224,34 +240,6 @@ class Handler extends WebhookHandler
             $this->saveDriver(); // Финальная регистрация
         }
     }
-
-    // public function handlePhoto(Photo $photo): void
-    // {
-    //     $step = $this->chat->storage()->get('registration_step');
-
-    //     $filename = match ($step) {
-    //         'license_photo' => 'license_' . now()->timestamp . '.jpg',
-    //         'car_photo' => 'car_' . now()->timestamp . '.jpg',
-    //         default => null
-    //     };
-
-    //     if (!$filename) return;
-
-    //     $relativePath = ($step === 'license_photo' ? 'license_photos/' : 'car_photos/') . $filename;
-
-    //     Storage::makeDirectory('public/' . dirname($relativePath)); // Создаём папку если нет
-    //     Telegraph::store($photo, Storage::path('public/' . $relativePath));
-
-    //     $this->chat->storage()->set($step, $relativePath);
-
-    //     if ($step === 'license_photo') {
-    //         $this->chat->storage()->set('registration_step', 'car_photo');
-    //         $this->chat->message('✅ License photo saved. Now send a photo of your car:')->send();
-    //     } else {
-    //         $this->saveDriver();
-    //     }
-    // }
-
 
     protected function saveClient(): void
     {
@@ -336,4 +324,78 @@ class Handler extends WebhookHandler
 
         $this->chat->message('🎉 You have been registered as a driver! Please wait for approval.')->send();
     }
+
+    protected function saveOrder(): void
+    {
+        $client = Client::where('telegram_id', $this->message->from()->id())->first();
+
+        $order = Order::create([
+            'client_id' => $client->id,
+            'route' => $this->chat->storage()->get('route'),
+            'budget' => $this->chat->storage()->get('budget'),
+            'details' => $this->chat->storage()->get('details'),
+            'status' => 'new',
+        ]);
+
+        $this->chat->message('✅ Your order has been created! Wait for the drivers response.')->send();
+
+        $this->notifyDrivers($order);
+    }
+
+    /**
+     * Notify available drivers about a new order.
+     *
+     * @param Order $order
+     * @return void
+     */
+    protected function notifyDrivers(Order $order): void
+    {
+        // Example: Notify all drivers in the same city as the order's client
+        $client = $order->client;
+        $drivers = Driver::where('city', $client->city)->where('status', 'active')->get();
+
+        foreach ($drivers as $driver) {
+            if ($driver->user && $driver->user->telegram_id) {
+                Telegraph::chat($driver->user->telegram_id)
+                    ->message("🚕 New order!\n
+                        📍 From: {$order->pickup_address}\n
+                        🏁 To: {$order->destination_address}
+                        💵 Budget: {$order->budget}\n
+                        📝 Details: {$order->details}"
+                    )
+                    ->keyboard(
+                        Keyboard::make()->buttons([
+                            Button::make("✅ Accept order")->action('accept_order')->param('order_id', $order->id),
+                        ])
+                    )
+                    ->send();
+            }
+        }
+    }
+
+    public function accept_order(): void
+    {
+        $orderId = $this->data->get('order_id');
+        $order = Order::find($orderId);
+
+        if (!$order || $order->status !== 'new') {
+            $this->chat->message('❌ This order has already been accepted.')->send();
+            return;
+        }
+
+        $driver = Driver::where('telegram_id', $this->message->from()->id())->first();
+
+        $order->update([
+            'driver_id' => $driver->id,
+            'status' => 'accepted',
+        ]);
+
+        $this->chat->message('✅ You have accepted the order!')->send();
+
+        // Уведомить клиента
+        Telegraph::message("🚕 Your order has been accepted by the driver {$driver->full_name}")
+            ->send();
+    }
+
+
 }

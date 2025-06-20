@@ -45,7 +45,7 @@ class Handler extends WebhookHandler
 
     public function register_client(): void
     {
-        $telegramId = $this->message->from()->id();
+        $telegramId = $this->chat->chat_id;
 
         $client = Client::where('telegram_id', $telegramId)->first();
 
@@ -457,7 +457,8 @@ class Handler extends WebhookHandler
 
         $order = Order::create([
             'client_id' => $client->id,
-            'route' => $this->chat->storage()->get('route'),
+            'pickup_address' => $this->chat->storage()->get('pickup_address'),
+            'destination_address' => $this->chat->storage()->get('destination_address'),
             'budget' => $this->chat->storage()->get('budget'),
             'details' => $this->chat->storage()->get('details'),
             'status' => 'new',

@@ -361,12 +361,14 @@ class Handler extends WebhookHandler
         $last_name = $this->chat->storage()->get('client_last_name');
         $email = $this->chat->storage()->get('client_email');
         $password = Str::random(10);
+        $telegramId = $this->message->from()?->id();
 
         $user = User::create([
             'name' => $first_name . '_' . $last_name,
             'email' => $email,
             'password' => Hash::make($password),
             'role' => 'client',
+            'telegram_id' => $telegramId,
         ]);
 
         
@@ -407,6 +409,8 @@ class Handler extends WebhookHandler
 
     protected function saveDriver(): void
     {
+        $telegramId = $this->message->from()->id();
+
         $data = [
             'first_name' => $this->chat->storage()->get('driver_first_name'),
             'last_name' => $this->chat->storage()->get('driver_last_name'),
@@ -429,6 +433,7 @@ class Handler extends WebhookHandler
             'email' => $email,
             'password' => bcrypt($password),
             'role' => 'driver',
+            'telegram_id' => $telegramId,
         ]);
 
         // Создание водителя

@@ -202,7 +202,7 @@ class Handler extends WebhookHandler
 
             $absolutePath = storage_path('app/public/' . $relativePath);
 
-            Telegraph::store($photo, $absolutePath, $filename); // сохраняем файл в нужное место
+            Telegraph::store($photo, $relativePath, $filename); // сохраняем файл в нужное место
 
             $this->chat->storage()->set('car_photo', 'car_photos/' . $filename); // сохраняем путь для БД
 

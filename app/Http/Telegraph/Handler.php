@@ -181,8 +181,8 @@ class Handler extends WebhookHandler
         if ($step === 'license_photo') {
             $filename = 'license_' . now()->timestamp . '.jpg';
             $relativePath = 'license_photos/';
-            Storage::makeDirectory($relativePath); // создаём папку если нет
-            $path = Storage::path($relativePath . '/' . $filename); // полный путь к файлу
+            Storage::disk('public')->makeDirectory($relativePath); // создаём папку если нет
+            $path = Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
 
             Telegraph::store($photo, $path); // сохраняем файл в нужное место
 
@@ -195,8 +195,8 @@ class Handler extends WebhookHandler
         if ($step === 'car_photo') {
             $filename = 'car_' . now()->timestamp . '.jpg';
             $relativePath = 'car_photos/';
-            Storage::makeDirectory($relativePath); // создаём папку если нет
-            $path = Storage::path($relativePath . '/' . $filename); // полный путь к файлу
+            Storage::disk('public')->makeDirectory($relativePath); // создаём папку если нет
+            $path = Storage::disk('public')->path($relativePath . '/' . $filename); // полный путь к файлу
 
             Telegraph::store($photo, $path); // сохраняем файл в нужное место
 

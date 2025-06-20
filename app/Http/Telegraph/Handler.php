@@ -45,6 +45,23 @@ class Handler extends WebhookHandler
 
     public function register_client(): void
     {
+        $telegramId = $this->message->from()->id();
+
+        $client = Client::where('telegram_id', $telegramId)->first();
+
+        if ($client) {
+            $this->chat
+                ->message('⚠️ You are already registered as a client. What would you like to do?')
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make('🔄 Update info')->action('update_client_info'),
+                        Button::make('📝 Create order')->action('create_order'),
+                    ])
+                )
+                ->send();
+            return;
+        }
+
         $this->chat->storage()
             ->forget('registration_step')
             ->forget('order_step')
@@ -72,7 +89,14 @@ class Handler extends WebhookHandler
         Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
 
         $registrationStep = $this->chat->storage()->get('registration_step');
+ 
+        if (Str::startsWith($registrationStep, 'client_update_')) {
+            $this->handleUpdateStep($registrationStep, $text);
+            return;
+        }
+
         $orderStep = $this->chat->storage()->get('order_step');
+        // $updateStep = $this->chat->storage()->get('client_update_first_name');
 
         if ($registrationStep) {
             $this->handleRegistrationStep($registrationStep, $text);
@@ -83,6 +107,11 @@ class Handler extends WebhookHandler
             $this->handleOrderStep($orderStep, $text);
             return;
         }
+
+        // if ($updateStep) {
+        //     $this->handleUpdateStep($updateStep, $text);
+        //     return;
+        // }
 
         $this->chat->message('Use /start to begin.')->send();
 
@@ -230,6 +259,65 @@ class Handler extends WebhookHandler
         }
     }
 
+    protected function handleUpdateStep(string $step, Stringable $text): void
+    {
+        switch ($step) {
+            case 'client_update_first_name':
+                $this->chat->storage()->set('client_first_name', $text);
+                $this->chat->storage()->set('registration_step', 'client_update_last_name');
+                $this->chat->message('Enter your last name:')->send();
+                break;
+
+            case 'client_update_last_name':
+                $this->chat->storage()->set('client_last_name', $text);
+                $this->chat->storage()->set('registration_step', 'client_update_phone');
+                $this->chat->message('Enter your phone number:')->send();
+                break;
+
+            case 'client_update_phone':
+                $this->chat->storage()->set('client_phone', $text);
+                $this->chat->storage()->set('registration_step', 'client_update_country');
+                $this->chat->message('Enter your country:')->send();
+                break;
+
+            case 'client_update_country':
+                $this->chat->storage()->set('client_country', $text);
+                $this->chat->storage()->set('registration_step', 'client_update_city');
+                $this->chat->message('Enter your city:')->send();
+                break;
+            
+            case 'client_update_city':
+                $this->chat->storage()->set('client_city', $text);
+                $this->saveUpdatedClient();
+                break;
+        }
+    }
+
+    protected function saveUpdatedClient(): void
+    {
+        $telegramId = $this->message->from()->id();
+
+        Client::where('telegram_id', $telegramId)->update([
+            'first_name' => $this->chat->storage()->get('client_first_name'),
+            'last_name'  => $this->chat->storage()->get('client_last_name'),
+            'phone'      => $this->chat->storage()->get('client_phone'),
+            'country'    => $this->chat->storage()->get('client_country'),
+            'city'       => $this->chat->storage()->get('client_city'),
+        ]);
+
+        $this->chat->message('✅ Your info has been updated!')
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('📝 Create order')->action('create_order'),
+                    Button::make('🏠 Main menu')->action('start'),
+                ])
+            )
+            ->send();
+
+        $this->chat->storage()->forget('registration_step');
+    }
+
+
     public function handlePhoto(Photo $photo): void
     {
        
@@ -269,14 +357,6 @@ class Handler extends WebhookHandler
     protected function saveClient(): void
     {
 
-        $telegramId = $this->message->from()->id();
-
-        // Если клиент с таким telegram_id уже существует
-        if (Client::where('telegram_id', $telegramId)->exists()) {
-            $this->chat->message('⚠️ You are already registered as a client.')->send();
-            return;
-        }
-
         $first_name = $this->chat->storage()->get('client_first_name');
         $last_name = $this->chat->storage()->get('client_last_name');
         $email = $this->chat->storage()->get('client_email');
@@ -311,6 +391,19 @@ class Handler extends WebhookHandler
 
         $this->chat->message('✅ You have been successfully registered as a client!')->send();
     }
+
+   public function update_client_info(): void
+    {
+        $this->chat->storage()->set('registration_step', 'client_update_first_name');
+        $this->chat->message('🔄 Let\'s update your info. Enter your first name:')
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('❌ Cancel')->action('cancel'),
+                ])
+            )
+            ->send();
+    }
+
 
     protected function saveDriver(): void
     {

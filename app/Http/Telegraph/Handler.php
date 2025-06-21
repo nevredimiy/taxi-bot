@@ -618,7 +618,9 @@ class Handler extends WebhookHandler
 
         if ($clientUser && $clientUser->telegram_id) {
             Telegraph::chat($clientUser->telegram_id)
-                ->message("🚕 Your order has been accepted by the driver {$driver->first_name} {$driver->last_name}")
+                ->message("🚕 Your order has been accepted by the driver {$driver->first_name} \n
+                 model car: {$driver->car_model}\n
+                 car license: {$driver->license_number}")
                 ->send();
         }
     }
@@ -639,18 +641,6 @@ class Handler extends WebhookHandler
 
         $this->start(); // показать меню заново
     }
-
-
-    // public function handleCommand(string $name): void
-    // {
-    //     if ($name === 'cancel') {
-    //         $this->cancel();
-    //     } elseif ($name === 'start') {
-    //         $this->start();
-    //     } else {
-    //         $this->chat->message('❓ Unknown command.')->send();
-    //     }
-    // }
 
 }
 

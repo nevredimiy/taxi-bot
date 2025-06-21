@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\Mail;
 use DefStudio\Telegraph\DTO\Photo;
 
 
-
 class Handler extends WebhookHandler
 {
     public function start(): void
@@ -49,20 +48,8 @@ class Handler extends WebhookHandler
 
         $user = User::where('telegram_id', $telegramId)->first();
 
-        if (!$user || $user->role !== 'client') {
-            $this->chat->message('❌ You are not registered as a client.')
-                ->keyboard(
-                    Keyboard::make()->buttons([
-                        Button::make('🙋 Client registration')->action('register_client'),
-                    ])
-                )
-                ->send();
-            return;
-        }
-
-        $client = $user->client;
-
-        if ($client) {
+        // Если пользователь уже зарегистрирован как клиент
+        if ($user && $user->role === 'client' && $user->client) {
             $this->chat
                 ->message('⚠️ You are already registered as a client. What would you like to do?')
                 ->keyboard(
@@ -75,59 +62,15 @@ class Handler extends WebhookHandler
             return;
         }
 
+        // Если пользователь не существует, создадим новую регистрацию
         $this->chat->storage()
             ->forget('registration_step')
             ->forget('order_step')
             ->set('registration_step', 'client_email');
 
-        $this->chat->message('Please enter your email:')->send();
+        $this->chat->message('📧 Please enter your email:')->send();
     }
 
-    public function create_order(): void
-    {
-        $this->chat->storage()
-            ->forget('registration_step')
-            ->forget('order_step')
-            ->set('order_step', 'pickup_address');
-
-        $this->chat->message('Enter pickup address:')->send();
-    }
-
-    /**
-     * Обрабатывает текстовые сообщения от пользователя.
-     * @param Stringable $text
-     */
-    protected function handleChatMessage(Stringable $text): void
-    {
-        Log::info(json_encode($this->message->toArray(), JSON_UNESCAPED_UNICODE));
-
-        $registrationStep = $this->chat->storage()->get('registration_step');
-
-        if (Str::startsWith($registrationStep, 'client_update_')) {
-            $this->handleUpdateStep($registrationStep, $text);
-            return;
-        }
-
-        $orderStep = $this->chat->storage()->get('order_step');
-        // $updateStep = $this->chat->storage()->get('client_update_first_name');
-
-        if ($registrationStep) {
-            $this->handleRegistrationStep($registrationStep, $text);
-            return;
-        }
-
-        if ($orderStep) {
-            $this->handleOrderStep($orderStep, $text);
-            return;
-        }
-
-        // if ($updateStep) {
-        //     $this->handleUpdateStep($updateStep, $text);
-        //     return;
-        // }
-
-        $this->chat->message('Use /start to begin.')->send();
-    }
 
     protected function handleRegistrationStep(string $step, Stringable $text): void
     {
@@ -646,3 +589,5 @@ class Handler extends WebhookHandler
     // }
 
 }
+
+

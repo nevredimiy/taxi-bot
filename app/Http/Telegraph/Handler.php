@@ -68,7 +68,7 @@ class Handler extends WebhookHandler
 
         $user = User::where('telegram_id', $telegramId)->first();
 
-       // Если пользователь уже зарегистрирован как клиент
+        // Если пользователь уже зарегистрирован как клиент
         if ($user && $user->role === 'client' && $user->client) {
             $this->chat
                 ->message('⚠️ You are already registered as a client. What would you like to do?')
@@ -111,7 +111,7 @@ class Handler extends WebhookHandler
             ->forget('order_step')
             ->set('order_step', 'pickup_address');
 
-        $this->chat->message('🚕 Order registration has begun! <br> Enter pickup address:')->send();
+        $this->chat->message('🚕 Order registration has begun! Enter pickup address:')->send();
     }
 
     /**
@@ -580,10 +580,10 @@ class Handler extends WebhookHandler
             if ($driver->user && $driver->user->telegram_id) {
                 Telegraph::chat($driver->user->telegram_id)
                     ->message(
-                        "🚕 New order!<br>
-                        📍 From: {$order->pickup_address}<br>
-                        🏁 To: {$order->destination_address}<br>
-                        💵 Budget: {$order->budget}<br>
+                        "🚕 New order! - 
+                        📍 From: {$order->pickup_address} - 
+                        🏁 To: {$order->destination_address} - 
+                        💵 Budget: {$order->budget} - 
                         📝 Details: {$order->details}"
                     )
                     ->keyboard(
@@ -661,7 +661,4 @@ class Handler extends WebhookHandler
 
         $this->start(); // показать меню заново
     }
-
 }
-
-

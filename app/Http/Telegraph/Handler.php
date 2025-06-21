@@ -111,7 +111,7 @@ class Handler extends WebhookHandler
             ->forget('order_step')
             ->set('order_step', 'pickup_address');
 
-        $this->chat->message('Enter pickup address:')->send();
+        $this->chat->message('Order registration has begun! \n Enter pickup address:')->send();
     }
 
     /**

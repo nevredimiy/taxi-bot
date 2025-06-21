@@ -111,9 +111,7 @@ class Handler extends WebhookHandler
             ->forget('order_step')
             ->set('order_step', 'pickup_address');
 
-        $this->chat
-            ->message("<b>🚕 Order registration has begun!</b><br>Please enter your pickup address:")
-            ->send();
+        $this->chat->message('🚕 Order registration has begun! <br> Enter pickup address:')->send();
     }
 
     /**
@@ -582,10 +580,10 @@ class Handler extends WebhookHandler
             if ($driver->user && $driver->user->telegram_id) {
                 Telegraph::chat($driver->user->telegram_id)
                     ->message(
-                        "🚕 New order!\n
-                        📍 From: {$order->pickup_address}\n
-                        🏁 To: {$order->destination_address}
-                        💵 Budget: {$order->budget}\n
+                        "🚕 New order!<br>
+                        📍 From: {$order->pickup_address}<br>
+                        🏁 To: {$order->destination_address}<br>
+                        💵 Budget: {$order->budget}<br>
                         📝 Details: {$order->details}"
                     )
                     ->keyboard(

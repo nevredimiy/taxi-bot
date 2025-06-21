@@ -112,7 +112,8 @@ class Handler extends WebhookHandler
             ->set('order_step', 'pickup_address');
 
         $this->chat
-            ->markdown("*🚕 Order registration has begun!*\n\nPlease enter your pickup address:");
+            ->message("<b>🚕 Order registration has begun!</b><br>Please enter your pickup address:")
+            ->send();
     }
 
     /**

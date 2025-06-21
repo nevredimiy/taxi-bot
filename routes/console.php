@@ -7,7 +7,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('set-сommands-telegram', function () {
+Artisan::command('setсommandstelegram', function () {
     
     /** @var \DefStudio\Telegraph\Models\TelegraphBot $telegraphBot */
 
@@ -19,4 +19,4 @@ Artisan::command('set-сommands-telegram', function () {
     ])->send();
 
 
-})->purpose('Your commands were set');
+});

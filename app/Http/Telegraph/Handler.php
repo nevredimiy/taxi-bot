@@ -19,6 +19,15 @@ use App\Mail\WelcomeClientMail;
 use Illuminate\Support\Facades\Mail;
 use DefStudio\Telegraph\DTO\Photo;
 
+use DefStudio\Telegraph\Models\TelegraphBot;
+
+TelegraphBot::first()->registerCommands([
+    'start' => 'Getting Started with the Bot',
+    'order' => 'Create an order a taxi',
+    'driver' => 'Driver registration',
+    'cancel' => 'Cancel all actions and clear cache'
+]);
+
 
 class Handler extends WebhookHandler
 {
@@ -31,6 +40,17 @@ class Handler extends WebhookHandler
                 Button::make('📝 Create order')->action('create_order')
             ]))->send();
     }
+
+    public function order(): void
+    {
+        $this->create_order();
+    }
+
+    public function driver(): void
+    {
+        $this->register_driver();
+    }
+
 
     public function register_driver(): void
     {

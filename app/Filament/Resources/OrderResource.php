@@ -17,6 +17,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Exports\OrderExporter;
 use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Actions\ExportBulkAction;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 
 class OrderResource extends Resource
@@ -35,14 +42,16 @@ class OrderResource extends Resource
                     ->required()
                     ->options(
                         Client::all()->mapWithKeys(function ($client) {
-                        return [$client->id => $client->first_name . ' ' . $client->last_name];
-                    }))
+                            return [$client->id => $client->first_name . ' ' . $client->last_name];
+                        })
+                    )
                     ->searchable(),
                 Forms\Components\Select::make('driver_id')
                     ->options(
                         Driver::all()->mapWithKeys(function ($client) {
-                        return [$client->id => $client->first_name . ' ' . $client->last_name];
-                    }))
+                            return [$client->id => $client->first_name . ' ' . $client->last_name];
+                        })
+                    )
                     ->searchable(),
                 Forms\Components\Select::make('status')
                     ->required()
@@ -98,22 +107,32 @@ class OrderResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                ExportBulkAction::make()
+                        ->exporter(OrderExporter::class),
+                
                 ]),
             ])
+           
             ->headerActions([
                 ExportAction::make()
                     ->exporter(OrderExporter::class)
-            ])
-            ->bulkActions([
-                ExportBulkAction::make()
-                    ->exporter(OrderExporter::class)
             ]);
+            
+            BulkAction::make('delete')
+                ->requiresConfirmation()
+                ->action(fn (Collection $records) => $records->each->delete());
     }
+
+    
 
     public static function getRelations(): array
     {

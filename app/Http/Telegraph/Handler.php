@@ -433,7 +433,13 @@ class Handler extends WebhookHandler
 
         $client->save();
 
-        $this->chat->message('✅ You have been successfully registered as a client!')->send();
+        $this->chat->message('✅ You have been successfully registered as a client!/n Now you can create an order')
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('📝 Create order')->action('create_order'),
+                ])
+            )
+            ->send();
     }
 
     public function update_client_info(): void
